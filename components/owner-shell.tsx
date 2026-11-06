@@ -12,6 +12,7 @@ const links = [
   ["/owner/bookings", "Bookings", CalendarDays],
   ["/owner/checkout", "Guest checkout", Receipt],
   ["/owner/staff", "Staff & teams", Users],
+  ["/owner/schedule", "Staff schedule", CalendarDays],
   ["/owner/reports", "Reports", ChartNoAxesCombined],
   ["/owner/finance", "Finance", Wallet],
   ["/owner/audit", "Activity log", ClipboardList],
