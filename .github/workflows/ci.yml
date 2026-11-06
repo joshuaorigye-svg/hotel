@@ -1,7 +1,7 @@
 name: Next.js CI
 on:
   push:
-    branches: [main, feature/buladde-hotel-platform, feature/staff-scheduling]
+    branches: [main, feature/buladde-hotel-platform, feature/staff-scheduling, feature/shift-attendance-integration]
   pull_request:
     branches: [main]
 jobs:
