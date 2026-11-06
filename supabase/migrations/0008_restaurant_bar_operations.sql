@@ -76,6 +76,8 @@ begin
  if public.current_user_role()<>'manager' and not public.is_owner() then raise exception 'Manager access required'; end if;
  if p_quantity_delta=0 or p_quantity_delta is null then raise exception 'Enter a non-zero quantity'; end if;
  if p_movement_type not in('purchase','adjustment','waste','opening') then raise exception 'Invalid stock movement'; end if;
+ if p_movement_type in('purchase','opening') and p_quantity_delta<0 then raise exception 'Purchases and opening balances must increase stock'; end if;
+ if p_movement_type='waste' and p_quantity_delta>0 then raise exception 'Wastage must reduce stock'; end if;
  select * into it from public.inventory_items where id=p_inventory_item_id and is_active=true for update;
  if not found then raise exception 'Stock item not found'; end if;
  if not public.is_owner() and it.department_id<>public.current_user_department() then raise exception 'This stock item belongs to another department'; end if;
