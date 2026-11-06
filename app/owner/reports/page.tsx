@@ -32,7 +32,7 @@ export default async function Reports() {
  const monthKeys=Array.from({length:12},(_,i)=>{const d=new Date(start);d.setUTCMonth(start.getUTCMonth()+i);return d.toISOString().slice(0,7)});
  const monthly=monthKeys.map(key=>({month:key,revenue:pay.filter((x:any)=>monthKey(x.created_at)===key).reduce((s:number,x:any)=>s+Number(x.amount||0),0),expenses:exp.filter((x:any)=>monthKey(x.created_at)===key).reduce((s:number,x:any)=>s+Number(x.amount||0),0)}));
  const daysIn=(y:number,m:number)=>new Date(Date.UTC(y,m,0)).getUTCDate();
- const todayKey=monthKey(now);
+ const todayKey=monthKey(now.toISOString());
  const roomCount=room.length;
  const roomNights=book.reduce((sum:number,b:any)=>{
   let count=0; const fromDate=new Date(b.check_in+"T00:00:00Z"),toDate=new Date(b.check_out+"T00:00:00Z");
