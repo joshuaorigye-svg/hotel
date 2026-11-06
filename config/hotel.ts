@@ -1,0 +1,1 @@
+export const hotel = { name:"Buladde Palm Villa Hotel", shortName:"Buladde Palm Villa", address:"Gayaza-Kla Road, Uganda", phone:"0772509759", whatsapp:"256772509759", currency:"UGX", ownerName:"Mr. Kyazze Moses", locationUrl:"https://www.google.com/maps/search/?api=1&query=Buladde+Palm+Villa+Hotel+Gayaza+Road" } as const;

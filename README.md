@@ -1,79 +1,19 @@
-![thumbnail](https://user-images.githubusercontent.com/16558205/180779213-ea740975-3df1-460a-a964-0a623ee25872.png)
-
-### Live - https://react-portfolio-template.netlify.app
-### Demo Video - https://www.youtube.com/watch?v=62_HLbx2zLQ&t=9s
-### Open Source UI Components - https://ui.chetanverma.com/
-
-### Tutorials
-
-Youtube - https://www.youtube.com/watch?v=8cmJ2kR4SpM
-
-Blog - https://www.chetanverma.com/blog/how-to-build-a-portfolio-website-using-nextjs-and-tailwindcss
-
-### Features - 
-
-- Modern Stack (Next.js + TailwindCSS)
-- Minimal Design
-- Easy To Browse
-- Easy To Customize your details With GUI
-- Blog Crud (Create, Read, Update, Delete blog with easy to use UI).
-- Dark Mode
-
-
-### Sections
-
-- Header
-- Work
-- Services
-- About
-- Contact
-- Markdown Blog
-
-
-### How To Use
-
-- Clone this repo
-- run `yarn`
-- `yarn dev`
-
-
-### How To Deploy - 
-
-- There are many ways to Deploy this repo.
-- here we are gonna use netlify
-- Login into netlify with github
-- after login select the forked repo or the repo you want to deploy
-- after selecting netlify will automatially deploy your website.
-
-Quickes way to deploy this repo - 
-
-[![Deploy To Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/chetanverma16/react-portfolio-template)
-
-
-### How To Contribute - 
-
-I would be very happy to review your PRs and all the awesome things that you can improve on this portfolio.
-
-
-### Tech Stack Used - 
-- Next.js
-- TailwindCSS
-
-
-### Thanks
-
-If you liked this portfolio template, don't forget to give it a ⭐.
-
-## Awesome Contributors
-[@Aryan3212](https://github.com/Aryan3212) [@achu-krishna](https://github.com/achu-krishna)
-
-## Supporting
-Many hours of hard work have gone into this project. Your support will be very appreciated!
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/chetanverma)
-
-
-
-
-
-
+# Buladde Palm Villa Hotel Platform
+Next.js 14 App Router, Supabase PostgreSQL/Auth, Tailwind CSS, Vercel. Planned integrations: Pesapal and Resend.
+## First delivery
+The repository is being converted from its original portfolio template. This phase establishes the Next.js App Router, Supabase client setup, staff sign-in, owner-only layout and live owner dashboard. Dashboard figures come from Supabase and are not fabricated. Public landing page is an initial shell; booking, staff and manager workflows, Pesapal checkout/IPN and Resend confirmation emails are later phases.
+## Setup
+1. Node.js 20+. Copy `.env.example` to `.env.local`.
+2. Create a Supabase project. Set the public URL and anon key.
+3. Apply `supabase/migrations/0001_hotel_core.sql` in Supabase SQL Editor.
+4. Create the owner identity in Supabase Authentication. Insert a matching `public.profiles` row with the Auth UUID and role `owner`. Never commit credentials.
+5. Run `npm install` and `npm run dev`.
+6. Configure Supabase Auth Site URL and allowed redirect URLs for localhost and production.
+## Staff
+Create each account in Supabase Auth, then add a profile row using that Auth UUID, name, phone, role and department. Managers must have one department. Do not expose the service-role key in client code.
+## Rooms
+Insert into `public.rooms`: room number, type, nightly rate in UGX, facilities and status. Store photos in Supabase Storage and put their URLs in `image_urls`.
+## Vercel
+Import this repo, add the environment variables from `.env.example`, use the Next.js preset and deploy. Add the production URL to Supabase Auth redirect URLs.
+## Security
+RLS is the authorization boundary. Service-role, Pesapal and Resend secrets remain server-only. Pesapal status must be confirmed through verified server-side IPN, not a browser redirect. No default staff passwords are stored in source control.
