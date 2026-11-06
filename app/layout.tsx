@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: { default: hotel.name, template: "%s | " + hotel.shortName },
   description: "Hotel stays, dining and events on Gayaza-Kla Road.",
   icons: {
-    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/icon.png", type: "image/png", sizes: "512x512" }],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
   },
 };
 
