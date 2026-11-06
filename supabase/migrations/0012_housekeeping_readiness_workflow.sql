@@ -22,3 +22,7 @@ begin
 end; $$;
 revoke all on function public.advance_housekeeping_room(uuid,text) from public;
 grant execute on function public.advance_housekeeping_room(uuid,text) to authenticated;
+
+-- Prevent the older one-step RPC from bypassing inspection approval.
+revoke all on function public.set_housekeeping_room_status(uuid,text) from public;
+revoke all on function public.set_housekeeping_room_status(uuid,text) from authenticated;
