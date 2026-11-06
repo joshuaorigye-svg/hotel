@@ -4,7 +4,7 @@ A mobile-friendly hotel management platform built with Next.js 14 App Router, Su
 - Next.js 14 App Router foundation and green/gold branding.
 - Supabase email/password authentication and protected owner, manager and staff areas.
 - Owner overview, staff directory/invitations, booking approval and room assignment, finance view, audit log and integration settings.
-- Department-scoped manager overview, front desk booking approval, staff task/attendance/issue-report workspace.
+- Department-scoped manager overview, front desk booking approval, housekeeping room turnover, maintenance issue queue, staff task/attendance/issue-report workspace.
 - Public home, live room catalogue, restaurant menu, booking request, contact form and gallery placeholder.
 - PostgreSQL schema with Row Level Security, role hardening and audit triggers.
 - Resend notifications for booking requests, reception enquiries and staff invitations.
@@ -22,7 +22,7 @@ Sign in as owner, open **Staff & teams**, and invite the person with their name,
 ## Adding rooms and menu items
 Insert rooms into `public.rooms` with unique room number, room type, nightly rate in UGX, facilities array and image URLs. Insert menu items into `public.restaurant_menu_items`. Upload real hotel photographs to Supabase Storage.
 ## Booking approval
-The public form creates pending requests. Owner or the Front Desk manager can assign a room and confirm. The database function checks date overlaps before confirmation. The room is marked booked after confirmation. Housekeeping room turnover and check-out workflow are a follow-up phase.
+The public form creates pending requests. Owner or the Front Desk manager can assign a room and confirm. The database function checks date overlaps before confirmation. The room is marked booked after confirmation. Housekeeping managers can update room readiness. Staff problem reports are routed to the Maintenance and Cleaning team for triage.
 ## Pesapal setup
 1. Start with Pesapal sandbox credentials and set `PESAPAL_ENVIRONMENT=sandbox`.
 2. Deploy to an HTTPS Vercel preview or production domain and set `NEXT_PUBLIC_SITE_URL` to that domain.
@@ -34,6 +34,6 @@ The public form creates pending requests. Owner or the Front Desk manager can as
 ## Vercel
 Import the repository, choose the Next.js preset, configure all environment variables from `.env.example`, and deploy. Never commit secrets to GitHub.
 ## Still to complete
-Housekeeping room status workflow, complete manager tools for all departments, full owner reports and exports, food orders, expense approvals, leave management, staff PIN login, and final production acceptance tests. Deposit checkout is only available for confirmed bookings with an assigned room. Deposit is calculated as 30% of the room total.
+Complete manager tools for restaurant, bar and security, room check-out workflow, full owner reports and exports, food orders, expense approvals, leave management, staff PIN login, and final production acceptance tests. Deposit checkout is only available for confirmed bookings with an assigned room. Deposit is calculated as 30% of the room total.
 ## Payment security
 Pesapal's callback and IPN do not prove payment completion. The application queries Pesapal's GetTransactionStatus endpoint and compares amount, currency, merchant reference and tracking ID before marking a payment completed. Never treat the browser return page as proof of payment.

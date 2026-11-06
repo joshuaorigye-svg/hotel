@@ -12,7 +12,7 @@ export default async function ManagerOperations(){
   return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">HOUSEKEEPING</p><h1 className="mt-2 text-3xl font-semibold text-forest">Room turnover</h1><p className="mt-2 text-sm text-gray-500">Update room readiness as cleaning progresses. Checked-in rooms cannot be marked available.</p></header><DepartmentOperations kind="housekeeping" rooms={data||[]} issues={[]}/></main>;
  }
  if(department?.slug==="maintenance-cleaning"){
-  const {data}=await db.from("issue_reports").select("id,title,description,status,created_at,room_id").eq("department_id",p.department_id).order("created_at",{ascending:false}).limit(100);
+  const {data}=await db.from("issue_reports").select("id,title,description,status,created_at,room_id").eq("assigned_department_id",p.department_id).order("created_at",{ascending:false}).limit(100);
   return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">MAINTENANCE</p><h1 className="mt-2 text-3xl font-semibold text-forest">Issue desk</h1><p className="mt-2 text-sm text-gray-500">Review reported problems and keep each issue's progress up to date.</p></header><DepartmentOperations kind="maintenance" rooms={[]} issues={data||[]}/></main>;
  }
  redirect("/manager/dashboard");
