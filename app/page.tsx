@@ -1,0 +1,28 @@
+import Link from "next/link";
+import { hotel } from "@/config/hotel";
+import { Phone, MessageCircle, MapPin, ArrowRight } from "lucide-react";
+import { BrandMark } from "@/components/brand";
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-cream">
+      <header className="flex items-center justify-between border-b border-[#E8E2D5] bg-white px-5 py-4 md:px-12">
+        <Link href="/" className="flex min-w-0 items-center gap-3 text-forest"><BrandMark size={54} /><span className="max-w-[190px] text-sm font-semibold leading-tight sm:max-w-none sm:text-base">{hotel.name}</span></Link>
+        <nav className="hidden gap-7 text-sm text-gray-600 md:flex"><Link href="/rooms">Rooms</Link><Link href="/restaurant">Restaurant</Link><Link href="/gallery">Gallery</Link><Link href="/contact">Contact</Link></nav>
+        <Link href="/booking" className="rounded-xl bg-forest px-4 py-3 text-xs font-semibold text-white sm:px-5 sm:text-sm">Book a stay</Link>
+      </header>
+      <section className="relative overflow-hidden bg-forest px-6 py-24 text-white md:px-16 md:py-36">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(120deg,#173F32,transparent),url(https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1800)", backgroundSize: "cover", backgroundPosition: "center" }} />
+        <div className="relative mx-auto max-w-6xl"><p className="text-xs font-bold tracking-[.28em] text-gold">WELCOME TO YOUR QUIET ESCAPE</p><h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">Rest, dine and make memories at {hotel.shortName}.</h1><p className="mt-6 max-w-xl text-base leading-7 text-white/75">A warm place to stay, gather and unwind along Gayaza-Kla Road.</p>
+          <div className="mt-9 flex flex-wrap gap-3"><Link href="/booking" className="flex items-center gap-2 rounded-xl bg-gold px-6 py-4 font-semibold text-forest">Book your stay <ArrowRight size={18} /></Link><a href={`https://wa.me/${hotel.whatsapp}`} className="flex items-center gap-2 rounded-xl border border-white/30 px-6 py-4 font-semibold"><MessageCircle size={18} /> WhatsApp us</a></div>
+        </div>
+      </section>
+      <section className="mx-auto grid max-w-6xl gap-5 px-6 py-16 md:grid-cols-3">
+        <article className="rounded-2xl bg-white p-7 shadow-soft"><h2 className="font-semibold text-forest">Comfortable rooms</h2><p className="mt-2 text-sm leading-6 text-gray-500">Explore room options and enquire about availability.</p><Link href="/rooms" className="mt-5 inline-block text-sm font-semibold text-leaf">Explore rooms →</Link></article>
+        <article className="rounded-2xl bg-white p-7 shadow-soft"><h2 className="font-semibold text-forest">Restaurant & bar</h2><p className="mt-2 text-sm leading-6 text-gray-500">Discover food, drinks and hospitality.</p><Link href="/restaurant" className="mt-5 inline-block text-sm font-semibold text-leaf">View restaurant →</Link></article>
+        <article className="rounded-2xl bg-white p-7 shadow-soft"><h2 className="font-semibold text-forest">Events & gatherings</h2><p className="mt-2 text-sm leading-6 text-gray-500">Ask our team about hosting your next occasion.</p><Link href="/contact" className="mt-5 inline-block text-sm font-semibold text-leaf">Make an enquiry →</Link></article>
+      </section>
+      <footer className="flex flex-col justify-between gap-4 bg-[#102B23] px-6 py-8 text-sm text-white/70 md:flex-row md:px-12"><div className="flex items-center gap-3"><div className="rounded-lg bg-white p-1"><BrandMark size={42} /></div><p>{hotel.name} · {hotel.address}</p></div><div className="flex flex-wrap gap-5"><a href={`tel:${hotel.phone}`} className="flex items-center gap-2"><Phone size={15} />{hotel.phone}</a><a href={hotel.locationUrl} className="flex items-center gap-2"><MapPin size={15} />Find us</a><Link href="/login">Staff login</Link></div></footer>
+    </main>
+  );
+}
