@@ -128,3 +128,23 @@ revoke all on function public.finalize_guest_checkout(uuid) from public;
 grant execute on function public.get_guest_folio(uuid) to authenticated;
 grant execute on function public.record_guest_payment(uuid,numeric,text,text) to authenticated;
 grant execute on function public.finalize_guest_checkout(uuid) to authenticated;
+
+
+create or replace function public.check_in_guest(p_booking_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+declare b public.bookings%rowtype; r public.rooms%rowtype;
+begin
+ if not public.can_manage_front_desk() then raise exception 'Front Desk manager or owner access required'; end if;
+ select * into b from public.bookings where id=p_booking_id for update;
+ if not found or b.status<>'confirmed' then raise exception 'Only confirmed bookings can be checked in'; end if;
+ if b.check_in>current_date then raise exception 'Guest check-in date has not arrived'; end if;
+ if b.room_id is null then raise exception 'Assign a room before check-in'; end if;
+ select * into r from public.rooms where id=b.room_id for update;
+ if not found or r.status not in('available','booked') then raise exception 'Assigned room is not ready for check-in'; end if;
+ update public.bookings set status='checked_in',updated_at=now() where id=p_booking_id;
+ update public.rooms set status='occupied' where id=b.room_id;
+ insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
+ values(auth.uid(),'Checked in guest','booking',p_booking_id,jsonb_build_object('room_id',b.room_id));
+end; $$;
+revoke all on function public.check_in_guest(uuid) from public;
+grant execute on function public.check_in_guest(uuid) to authenticated;
