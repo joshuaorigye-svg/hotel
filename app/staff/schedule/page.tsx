@@ -1,0 +1,2 @@
+import {StaffSchedule} from "@/components/staff-schedule";
+export default function MySchedule(){return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">STAFF WORKSPACE</p><h1 className="mt-2 text-3xl font-semibold text-forest">My shift schedule</h1><p className="mt-2 text-sm text-gray-500">Check the shifts assigned to you for the week.</p></header><StaffSchedule mode="staff"/></main>;}

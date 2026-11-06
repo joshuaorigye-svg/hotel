@@ -1,0 +1,5 @@
+import {createClient} from "@/lib/supabase/server";
+import {redirect} from "next/navigation";
+import {StaffSchedule} from "@/components/staff-schedule";
+export const dynamic="force-dynamic";
+export default async function OwnerSchedule(){const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)redirect("/login");const {data:p}=await db.from("profiles").select("role").eq("id",user.id).single();if(p?.role!=="owner")redirect(p?.role==="manager"?"/manager/dashboard":"/staff/tasks");return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">PEOPLE & OPERATIONS</p><h1 className="mt-2 text-3xl font-semibold text-forest">Staff scheduling</h1><p className="mt-2 text-sm text-gray-500">Plan shifts across hotel departments and prevent double-booking team members.</p></header><StaffSchedule mode="owner"/></main>;}
