@@ -18,7 +18,7 @@ function messageFor(event: EventType, guest: string, booking: any) {
   const ref = booking.id.slice(0, 8).toUpperCase();
   const messages: Record<EventType, { subject: string; text: string }> = {
     confirmed: { subject: "Your hotel booking is confirmed", text: `Hello ${guest}, your stay at ${hotel.name} is confirmed for ${stay}. Booking reference: ${ref}. Please contact reception on ${hotel.phone} if you need help.` },
-    declined: { subject: "Update on your hotel booking request", text: `Hello ${guest}, we are unable to confirm your booking request for ${stay}. Please contact ${hotel.name} reception on ${hotel.phone to discuss other available dates. Reference: ${ref}.` },
+    declined: { subject: "Update on your hotel booking request", text: `Hello ${guest}, we are unable to confirm your booking request for ${stay}. Please contact ${hotel.name} reception on ${hotel.phone} to discuss other available dates. Reference: ${ref}.` },
     checked_in: { subject: "Welcome to Buladde Palm Villa Hotel", text: `Welcome ${guest}! Your check-in at ${hotel.name} is complete. We wish you a pleasant stay. For assistance, contact reception on ${hotel.phone}. Reference: ${ref}.` },
     checked_out: { subject: "Thank you for staying with us", text: `Thank you ${guest} for staying at ${hotel.name}. Your checkout is complete. We hope to welcome you again. Safe travels! Reference: ${ref}.` },
   };
@@ -40,7 +40,8 @@ async function sendSms(phone: string, message: string) {
       cache: "no-store",
     });
     const result = await response.json();
-    if (!response.ok) return { channel: "sms", sent: false, reason: result?.SMSMessageData?.Message || "SMS provider rejected the request" };
+    const recipient = result?.SMSMessageData?.Recipients?.[0];
+    if (!response.ok || (recipient?.statusCode && String(recipient.statusCode) !== "101")) return { channel: "sms", sent: false, reason: recipient?.status || result?.SMSMessageData?.Message || "SMS provider rejected the request" };
     return { channel: "sms", sent: true };
   } catch {
     return { channel: "sms", sent: false, reason: "SMS provider could not be reached" };
