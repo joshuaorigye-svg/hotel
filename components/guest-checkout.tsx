@@ -54,7 +54,7 @@ export function GuestCheckout({ initialBookings }: { initialBookings: Booking[] 
     setBusy("checkout"); setMessage(""); setError(false);
     const { error } = await db.rpc("finalize_guest_checkout", { p_booking_id: summary.booking_id });
     if (error) { setError(true); setMessage(error.message); }
-    else { setMessage("Checkout completed. Room " + summary.room_number + " has been sent to housekeeping."); setBookings(v => v.filter(b => b.id !== summary.booking_id)); setSummary(null); setPayments([]); }
+    else { setMessage("Checkout completed. Room " + summary.room_number + " has been sent to housekeeping."); try { await fetch("/api/notifications/booking", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingId: summary.booking_id, event: "checked_out" }) }); } catch {} setBookings(v => v.filter(b => b.id !== summary.booking_id)); setSummary(null); setPayments([]); }
     setBusy("");
   }
 
