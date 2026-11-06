@@ -22,7 +22,7 @@ export default async function ManagerOperations(){
    db.from("inventory_items").select("id,name,quantity,unit,low_stock_threshold").eq("department_id",p.department_id).eq("is_active",true).order("name"),
    db.from("restaurant_orders").select("id,order_number,order_type,table_label,guest_name,status,total_amount,created_at,restaurant_order_items(id,item_name,quantity,line_total)").eq("department_id",p.department_id).order("created_at",{ascending:false}).limit(50)
   ]);
-  return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">{department.slug==="bar"?"BAR":"RESTAURANT & KITCHEN"}</p><h1 className="mt-2 text-3xl font-semibold text-forest">{department.slug==="bar"?"Bar service desk":"Restaurant service desk"}</h1><p className="mt-2 text-sm text-gray-500">Capture guest orders, manage service progress and keep stock movements recorded.</p></header><FoodBarOperations departmentName={department.name} menu={(menu.data||[]) as any} stock={(stock.data||[]) as any} orders={(orders.data||[]) as any}/></main>;
+  return <main className="space-y-5"><header><p className="text-xs font-bold tracking-widest text-gold">{department.slug==="bar"?"BAR":"RESTAURANT & KITCHEN"}</p><h1 className="mt-2 text-3xl font-semibold text-forest">{department.slug==="bar"?"Bar service desk":"Restaurant service desk"}</h1><p className="mt-2 text-sm text-gray-500">Capture guest orders, manage service progress and keep stock movements recorded.</p></header><FoodBarOperations departmentId={p.department_id} departmentName={department.name} menu={(menu.data||[]) as any} stock={(stock.data||[]) as any} orders={(orders.data||[]) as any}/></main>;
  }
  redirect("/manager/dashboard");
 }
