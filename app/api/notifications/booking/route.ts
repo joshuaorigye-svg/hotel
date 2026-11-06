@@ -48,6 +48,55 @@ async function sendSms(phone: string, message: string) {
   }
 }
 
+
+async function sendWhatsApp(booking: any, event: EventType, message: string) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
+  if (!token || !phoneId || !templateName) return { channel: "whatsapp", sent: false, reason: "WhatsApp Cloud API is not configured" };
+  const to = ugandaPhone(booking.guest_phone);
+  if (!to) return { channel: "whatsapp", sent: false, reason: "Guest phone number is not a valid Uganda number" };
+  const eventLabels: Record<EventType, string> = {
+    confirmed: "Booking confirmed",
+    declined: "Booking request update",
+    checked_in: "Guest checked in",
+    checked_out: "Guest checked out",
+  };
+  try {
+    const response = await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en" },
+          components: [{
+            type: "body",
+            parameters: [
+              { type: "text", text: String(booking.guest_name).slice(0, 120) },
+              { type: "text", text: eventLabels[event] },
+              { type: "text", text: booking.check_in + " to " + booking.check_out },
+              { type: "text", text: booking.id.slice(0, 8).toUpperCase() },
+              { type: "text", text: hotel.phone },
+              { type: "text", text: message.slice(0, 900) },
+            ],
+          }],
+        },
+      }),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    if (!response.ok) return { channel: "whatsapp", sent: false, reason: result?.error?.message || "WhatsApp provider rejected the request" };
+    return { channel: "whatsapp", sent: true };
+  } catch {
+    return { channel: "whatsapp", sent: false, reason: "WhatsApp provider could not be reached" };
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const db = await createClient();
@@ -80,7 +129,7 @@ export async function POST(request: Request) {
       });
       results.push({ channel: "email", sent: email.sent, ...(!email.sent ? { reason: email.reason } : {}) });
     }
-    if (booking.guest_phone) results.push(await sendSms(booking.guest_phone, copy.text));
+    if (booking.guest_phone) { results.push(await sendSms(booking.guest_phone, copy.text)); results.push(await sendWhatsApp(booking, event, copy.text)); }
     return NextResponse.json({ success: results.some(r => r.sent), results, message: results.some(r => r.sent) ? "Guest notification sent." : "No notification channel is configured or available." });
   } catch {
     return NextResponse.json({ error: "Could not send guest notification." }, { status: 500 });
