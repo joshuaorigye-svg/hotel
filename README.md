@@ -1,30 +1,35 @@
 # Buladde Palm Villa Hotel Platform
-A mobile-friendly hotel management platform built with Next.js 14 App Router, Supabase PostgreSQL/Auth, Tailwind CSS and Vercel. Pesapal and Resend integrations are planned for the payment/email phase.
+A mobile-friendly hotel management platform built with Next.js 14 App Router, Supabase PostgreSQL/Auth, Tailwind CSS and Vercel.
 ## Current implementation
 - Next.js 14 App Router foundation and green/gold branding.
 - Supabase email/password authentication and protected owner, manager and staff areas.
-- Owner overview, staff directory/invitations, bookings list, finance view and audit log.
+- Owner overview, staff directory/invitations, bookings list, finance view, audit log and integration settings.
 - Department-scoped manager overview and staff task/attendance/issue-report workspace.
-- Public home, rooms, restaurant menu, booking request, contact form and gallery placeholder.
+- Public home, live room catalogue, restaurant menu, booking request, contact form and gallery placeholder.
 - PostgreSQL schema with Row Level Security and audit triggers.
-- Staff invitations are sent using Supabase Auth email invitations. The recipient sets their own password through the Supabase confirmation/invitation flow.
+- Resend email notifications for booking requests, reception enquiries and staff invitations.
+- Pesapal API 3.0 server-side checkout initiation, IPN registration and transaction-status verification.
 ## Setup
 1. Use Node.js 20+. Copy `.env.example` to `.env.local`.
-2. Create a Supabase project and set the project URL, anon key and service role key. The service role key is server-only and must never use a `NEXT_PUBLIC_` prefix.
-3. Apply migrations in order from `supabase/migrations` using Supabase SQL Editor or Supabase CLI.
-4. Create the owner account in Supabase Authentication. Insert a matching `public.profiles` row with the same Auth UUID, full name, and role `owner`. Do not put credentials in source control.
-5. Set Supabase Auth Site URL to your deployed hotel domain. Add local and production callback URLs to the allowed redirect URLs.
-6. Run `npm install`, then `npm run dev`.
+2. Create a Supabase project and set project URL, anon key and service role key. Service role is server-only.
+3. Apply migrations in order from `supabase/migrations`.
+4. Create the owner in Supabase Authentication, then insert a matching `public.profiles` row with the same Auth UUID and role `owner`.
+5. Set Supabase Auth Site URL to your domain and add local and production callback URLs. Account invitations return through `/auth/callback`.
+6. Verify your sending domain in Resend. Configure `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `RECEPTION_EMAIL`.
+7. Run `npm install` and `npm run dev`.
 ## Adding staff and managers
-Sign in as the owner, open **Staff & teams**, and invite the person with their full name, email, phone, role and department. Supabase sends an invitation email so they can set their own password. A manager must be assigned to one department. Accounts / Finance is reserved for the owner.
-For the initial requested sample roster, create the owner first, then invite three managers and five staff from the owner interface. Do not use shared default passwords or commit real staff credentials.
-## Adding rooms
-Insert a room in `public.rooms` with a unique room number, room type, nightly rate in UGX, facilities array and status. Upload real hotel photos to a private/public Supabase Storage bucket according to your chosen image policy and save the resulting URLs in `image_urls`. The public rooms page reads active room records.
-## Menu and contact inbox
-Add menu entries in `public.restaurant_menu_items`. Contact requests are saved in `public.contact_messages`; owner-only inbox UI is a follow-up build item.
+Sign in as owner, open **Staff & teams**, and invite the person with their name, email, phone, role and department. Resend sends a secure invitation/confirmation link. The invited user creates their own password. Finance is reserved for the owner.
+## Adding rooms and menu items
+Insert rooms into `public.rooms` with unique room number, room type, nightly rate in UGX, facilities array and image URLs. Insert menu items into `public.restaurant_menu_items`. Upload real hotel photographs to Supabase Storage.
+## Pesapal setup
+1. Start with Pesapal sandbox credentials and set `PESAPAL_ENVIRONMENT=sandbox`.
+2. Deploy to an HTTPS Vercel preview or production domain and set `NEXT_PUBLIC_SITE_URL` to that domain.
+3. Add Pesapal consumer key and secret in Vercel.
+4. Sign in as owner, open **Integrations**, and register the IPN endpoint.
+5. Copy the returned IPN ID into `PESAPAL_IPN_ID` in Vercel and redeploy.
+6. Reception must confirm a booking and assign a room before a guest can pay the 30% deposit using `/booking/deposit`. The payment status is only updated after the server queries Pesapal transaction status from the IPN notification.
+7. Test with sandbox credentials before switching to live credentials and `PESAPAL_ENVIRONMENT=live`.
 ## Vercel
-Import this repository, select the Next.js preset, configure the environment variables from `.env.example`, and deploy. Add the production URL to Supabase Auth redirect URLs.
-## Integrations still to complete
-Pesapal order registration, IPN verification and payment reconciliation; Resend transactional booking and contact emails; room availability overlap checks and confirmed room assignment; exports and full finance reporting. Deposit selection currently records a preference only and does not charge a card/mobile money account.
-## Security notes
-Supabase RLS is the authorization boundary. The service-role key, Pesapal secrets and Resend API key must remain server-only. Payment success must be based on verified Pesapal IPN/status checks, never a browser redirect. The public booking form creates pending requests only; reception must confirm availability.
+Import the repository, choose the Next.js preset, configure all environment variables from `.env.example`, and deploy. Never commit secrets to GitHub.
+## Still to complete
+Front desk booking approval/room allocation UI, housekeeping room status workflow, complete manager tools for all departments, full owner reports and exports, food orders, expense approvals, leave management, staff PIN login, and final production build/acceptance tests. Payment checkout requires confirmed bookings and an assigned room. Deposit is calculated as 30% of the room total.
