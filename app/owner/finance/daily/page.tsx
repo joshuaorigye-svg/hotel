@@ -106,6 +106,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     ["Processed refunds", String(processedRefunds)],
     ["Paid operating expenses", String(paidExpenses)],
     ["Paid payroll", String(paidPayroll)],
+    ["Staff advance disbursements", String(totalPaidAdvances)],
     ["Total paid outflows", String(totalPaidOutflows)],
     ["Net recorded movement", String(netMovement)],
     ["Current approved unpaid expenses", String(outstandingApproved)],
