@@ -22,13 +22,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function toggleTheme() {
-    setTheme((current) => {
-      const next = current === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", next === "dark");
-      document.documentElement.style.colorScheme = next;
-      window.localStorage.setItem("buladde-workspace-theme", next);
-      return next;
-    });
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    document.documentElement.style.colorScheme = next;
+    window.localStorage.setItem("buladde-workspace-theme", next);
   }
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
