@@ -1,6 +1,6 @@
 "use client";
 
-export function ReportExport({ rows, filename }: { rows: (string[] | undefined)[]; filename: string }) {
+export function ReportExport({ rows, filename }: { rows: (Array<string | number | null | undefined> | undefined)[]; filename: string }) {
   function download() {
     const csv = rows
       .map((row) =>
