@@ -10,7 +10,7 @@ export default async function PayrollPage() {
     db.from("profiles").select("id,full_name,role").eq("is_active", true).in("role", ["staff", "manager"]).order("full_name"),
     db.from("staff_salary_settings").select("staff_id,base_salary,allowances,default_deductions,effective_from,is_active"),
     db.from("payroll_runs").select("id,period_start,period_end,status,total_gross,total_deductions,total_net").order("period_start", { ascending: false }),
-    db.from("payroll_items").select("id,payroll_run_id,staff_id,base_salary,allowances,deductions,net_pay,payment_status,payment_method,payment_reference"),
+    db.from("payroll_items").select("id,payroll_run_id,staff_id,base_salary,allowances,deductions,advance_deductions,other_deductions,net_pay,payment_status,payment_method,payment_reference"),
     db.from("profiles").select("id,full_name"),
     db.from("staff_advance_requests").select("id,staff_id,amount,repayment_per_month,reason,status,rejection_reason,disbursement_reference").order("created_at", { ascending: false }),
     db.from("salary_deduction_requests").select("id,staff_id,amount,reason,effective_month,status,rejection_reason").order("created_at", { ascending: false }),
@@ -23,6 +23,12 @@ export default async function PayrollPage() {
     salary: salaries.get(person.id) || null,
   }));
   const names = new Map((profilesResult.data || []).map((person: any) => [person.id, person.full_name]));
+  const namesForControls = Object.fromEntries(names);
+  const repaid = (repaymentsResult.data || []).reduce((result: Record<string, number>, item: any) => {
+    result[item.advance_id] = (result[item.advance_id] || 0) + Number(item.amount || 0);
+    return result;
+  }, {});
+  const requestError = !!(advancesResult.error || deductionsResult.error || repaymentsResult.error);
   const itemsByRun = new Map<string, any[]>();
   for (const item of itemsResult.data || []) {
     const current = itemsByRun.get(item.payroll_run_id) || [];
@@ -42,7 +48,7 @@ export default async function PayrollPage() {
         <h1 className="mt-1 text-2xl font-semibold text-forest md:text-3xl">Staff payroll</h1>
         <p className="mt-2 text-sm text-gray-500">Set salary terms, prepare monthly payroll, approve it and record completed payments.</p>
       </header>
-      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />\n      <AdvanceDeductionControls advances={(advancesResult.data || []) as any} deductions={(deductionsResult.data || []) as any} names={names} repaid={repaid} loadError={requestError} />
+      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />\n      <AdvanceDeductionControls advances={(advancesResult.data || []) as any} deductions={(deductionsResult.data || []) as any} names={namesForControls} repaid={repaid} loadError={requestError} />
     </div>
   );
 }
