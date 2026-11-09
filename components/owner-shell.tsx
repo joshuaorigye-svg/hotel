@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, ChartNoAxesCombined, Wallet, ClipboardList, LogOut, Menu, X, PlugZap, Receipt } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, ChartNoAxesCombined, Wallet, ClipboardList, LogOut, Menu, X, PlugZap, Receipt, Banknote } from "lucide-react";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { hotel } from "@/config/hotel";
@@ -16,6 +16,7 @@ const links = [
   ["/owner/finance", "Finance", Wallet],
   ["/owner/finance/daily", "Daily reconciliation", Receipt],
   ["/owner/finance/performance", "Financial performance", ChartNoAxesCombined],
+  ["/owner/payroll", "Staff payroll", Banknote],
   ["/owner/audit", "Activity log", ClipboardList],
   ["/owner/integrations", "Integrations", PlugZap],
 ] as const;
