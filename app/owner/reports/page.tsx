@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { LucideIcon } from "lucide-react";
 import { ReportExport } from "@/components/report-export";
 import {
   BedDouble,
@@ -51,7 +52,7 @@ function Metric({
   label: string;
   value: string;
   detail: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
 }) {
   return (
     <article className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
