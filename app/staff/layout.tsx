@@ -18,7 +18,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       <header className="flex items-center gap-3 border-b border-[#EAE6DC] bg-white px-5 py-3">
         <BrandMark size={48} />
         <div className="min-w-0"><p className="font-semibold text-forest">{hotel.name}</p><p className="text-xs text-gray-500">Staff workspace</p></div>
-        <nav className="ml-auto flex items-center gap-3 text-sm"><Link href="/staff/tasks" className="text-gray-600 hover:text-forest">My tasks</Link><Link href="/staff/leave" className="text-gray-600 hover:text-forest">My leave</Link><Link href="/staff/payroll" className="font-semibold text-forest hover:underline">My payslips</Link><ThemeToggle compact /></nav>
+        <nav className="ml-auto flex items-center gap-3 text-sm"><Link href="/staff/tasks" className="text-gray-600 hover:text-forest">My tasks</Link><Link href="/staff/leave" className="text-gray-600 hover:text-forest">My leave</Link><Link href="/staff/schedule" className="text-gray-600 hover:text-forest">My shifts</Link><Link href="/staff/payroll" className="font-semibold text-forest hover:underline">My payslips</Link><ThemeToggle compact /></nav>
       </header>
       <main className="mx-auto max-w-5xl p-4 py-8 md:p-8">{children}</main>
     </div>
