@@ -8,11 +8,12 @@ type Expense = {
   id: string; title: string; description: string | null; amount: number | string;
   category: string; approval_status: string; created_at: string;
   department_id: string | null; created_by: string | null; rejection_reason: string | null;
+  reviewed_at: string | null; payment_status: string; paid_at: string | null;
 };
 type Session = {
   id: string; cashier_id: string; department_id: string | null; opening_float: number | string;
   closing_cash: number | string | null; expected_cash: number | string | null;
-  cash_sales: number | string | null; non_cash_sales: number | string | null;
+  cash_sales: number | string | null; non_cash_sales: number | string | null; cash_expenses: number | string | null;
   cash_variance: number | string | null; status: string; opened_at: string; closed_at: string | null;
 };
 type Profile = { id: string; full_name: string };
@@ -42,8 +43,8 @@ export default async function Finance() {
 
   const [paymentsResult, expensesResult, sessionsResult, departmentsResult, profilesResult] = await Promise.all([
     db.from("payments").select("amount,payment_method,created_at").eq("status", "completed").gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }).limit(1000),
-    db.from("expenses").select("id,title,description,amount,category,approval_status,created_at,department_id,created_by,rejection_reason").order("created_at", { ascending: false }).limit(100),
-    db.from("cashier_sessions").select("id,cashier_id,department_id,opening_float,closing_cash,expected_cash,cash_sales,non_cash_sales,cash_variance,status,opened_at,closed_at").order("opened_at", { ascending: false }).limit(50),
+    db.from("expenses").select("id,title,description,amount,category,approval_status,created_at,department_id,created_by,rejection_reason,reviewed_at,payment_status,paid_at").order("created_at", { ascending: false }).limit(100),
+    db.from("cashier_sessions").select("id,cashier_id,department_id,opening_float,closing_cash,expected_cash,cash_sales,non_cash_sales,cash_expenses,cash_variance,status,opened_at,closed_at").order("opened_at", { ascending: false }).limit(50),
     db.from("departments").select("id,name").order("name"),
     db.from("profiles").select("id,full_name"),
   ]);
@@ -63,8 +64,9 @@ export default async function Finance() {
     methodTotals.set(method, (methodTotals.get(method) || 0) + Number(payment.amount || 0));
   }
   const pendingExpenses = expenses.filter((expense) => expense.approval_status === "pending");
+  const payableExpenses = expenses.filter((expense) => expense.approval_status === "approved" && expense.payment_status !== "paid");
   const approvedThisMonth = expenses
-    .filter((expense) => expense.approval_status === "approved" && expense.created_at >= monthStart)
+    .filter((expense) => expense.approval_status === "approved" && !!expense.reviewed_at && expense.reviewed_at >= monthStart)
     .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const openSessions = sessions.filter((session) => session.status === "open");
   const ownOpenSession = sessions.find((session) => session.status === "open" && session.cashier_id === user?.id) || null;
@@ -95,7 +97,7 @@ export default async function Finance() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Collections · last 30 days" value={money(collected)} detail="Completed payment records only" />
-        <Metric label="Approved expenses · this month" value={money(approvedThisMonth)} detail="Based on expense submission date" />
+        <Metric label="Approved expenses · this month" value={money(approvedThisMonth)} detail="Based on owner approval date" />
         <Metric label="Awaiting approval" value={String(pendingExpenses.length)} detail="Expense requests requiring owner review" />
         <Metric label="Open cashier shifts" value={String(openSessions.length)} detail="Cashier sessions not yet reconciled" />
       </section>
@@ -146,7 +148,7 @@ export default async function Finance() {
         </div>
       </section>
 
-      <FinanceControls pendingExpenses={pendingExpenses} departments={departments} openSession={ownOpenSession} />
+      <FinanceControls pendingExpenses={pendingExpenses} payableExpenses={payableExpenses} departments={departments} openSession={ownOpenSession} />
 
       <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
         <h2 className="font-semibold text-forest">Cashier shift register</h2>
