@@ -26,7 +26,7 @@ export function MaintenanceWorkspace({role,userId,incidents,people=[]}:{role:Rol
  const [filter,setFilter]=useState("all");
  const visible=useMemo(()=>rows.filter(r=>filter==="all"||r.status===filter),[rows,filter]);
  function draft(r:Incident){return drafts[r.id]||{status:r.status,assigned_to:r.assigned_to||"",estimated_cost:r.estimated_cost?.toString()||"",actual_cost:r.actual_cost?.toString()||"",vendor_name:r.vendor_name||"",resolution_note:r.resolution_note||""};}
- function patch(id:string,key:string,value:string){setDrafts(current=>({...current,[id]:{...draft(rows.find(r=>r.id===id)!),[...Object.keys(current[id]||{})].reduce((a,k)=>({...a,[k]:(current[id] as any)[k]}),{}),[key]:value}}));}
+ function patch(id:string,key:string,value:string){const row=rows.find(r=>r.id===id);if(!row)return;const base={status:row.status,assigned_to:row.assigned_to||"",estimated_cost:row.estimated_cost?.toString()||"",actual_cost:row.actual_cost?.toString()||"",vendor_name:row.vendor_name||"",resolution_note:row.resolution_note||""};setDrafts(current=>({...current,[id]:{...base,...current[id],[key]:value}}));}
  async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError("");setNotice("");
   const {data,error}=await createClient().rpc("submit_maintenance_incident",{p_category:category,p_title:title,p_description:description,p_location:location,p_priority:priority});
   if(error)setError(error.message);else{setNotice("Incident submitted. Management can now review it.");setTitle("");setDescription("");setLocation("");}
