@@ -26,7 +26,7 @@ export default async function ManagerCashierPage() {
         <h1 className="mt-2 text-3xl font-semibold text-forest">Cashier shift</h1>
         <p className="mt-2 text-sm text-gray-500">{department.name} · Open and close your shift, then reconcile the cash drawer.</p>
       </div>
-      <FinanceControls pendingExpenses={[]} departments={[]} openSession={session || null} cashierOnly />
+      <FinanceControls pendingExpenses={[]} payableExpenses={[]} departments={[]} openSession={session || null} cashierOnly />
       <p className="text-xs text-gray-400">Your shift records only completed payments attributed to your staff account. The owner can review all department cashier sessions from the financial control centre.</p>
     </main>
   );
