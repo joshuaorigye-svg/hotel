@@ -14,7 +14,11 @@ export default async function ManagerCashierPage() {
   const department = Array.isArray(profile.departments) ? profile.departments[0] : profile.departments;
   if (!department || !["front-desk", "restaurant-kitchen", "bar"].includes(department.slug)) redirect("/manager/dashboard");
 
-  const { data: paymentOptions } = department.slug === "front-desk"\n    ? await db.from("payments").select("id,amount,payment_method,created_at,booking_id").eq("status", "completed").not("booking_id", "is", null).order("created_at", { ascending: false }).limit(100)\n    : { data: [] as { id: string; amount: number | string; payment_method: string | null; created_at: string; booking_id: string | null }[] };\n\n  const { data: session } = await db.from("cashier_sessions")
+  const { data: paymentOptions } = department.slug === "front-desk"
+    ? await db.from("payments").select("id,amount,payment_method,created_at,booking_id").eq("status", "completed").not("booking_id", "is", null).order("created_at", { ascending: false }).limit(100)
+    : { data: [] as { id: string; amount: number | string; payment_method: string | null; created_at: string; booking_id: string | null }[] };
+
+  const { data: session } = await db.from("cashier_sessions")
     .select("id,opening_float,opened_at")
     .eq("cashier_id", user.id)
     .eq("status", "open")
@@ -27,7 +31,8 @@ export default async function ManagerCashierPage() {
         <h1 className="mt-2 text-3xl font-semibold text-forest">Cashier shift</h1>
         <p className="mt-2 text-sm text-gray-500">{department.name} · Open and close your shift, then reconcile the cash drawer.</p>
       </div>
-      <FinanceControls pendingExpenses={[]} payableExpenses={[]} departments={[]} openSession={session || null} managerMode />\n      {department.slug === "front-desk" && <RefundControls ownerMode={false} payments={paymentOptions || []} requests={[]} />}
+      <FinanceControls pendingExpenses={[]} payableExpenses={[]} departments={[]} openSession={session || null} managerMode />
+      {department.slug === "front-desk" && <RefundControls ownerMode={false} payments={paymentOptions || []} requests={[]} />}
       <p className="text-xs text-gray-400">Your shift records only completed payments attributed to your staff account. The owner can review all department cashier sessions from the financial control centre.</p>
     </main>
   );
