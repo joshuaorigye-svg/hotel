@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 type Payment = { amount: number | string | null; payment_method: string | null; status: string; created_at: string };
 type Expense = { id: string; title: string; amount: number | string | null; payment_status: string; paid_at: string | null; created_at: string };
 type Refund = { id: string; amount: number | string | null; processed_at: string | null; refund_reference: string | null };
+type PayrollPayment = { id: string; net_pay: number | string | null; paid_at: string | null; payment_reference: string | null };
 type Session = { id: string; cashier_id: string; opening_float: number | string; cash_sales: number | string | null; non_cash_sales: number | string | null; cash_expenses: number | string | null; expected_cash: number | string | null; closing_cash: number | string | null; cash_variance: number | string | null; status: string; opened_at: string; closed_at: string | null };
 
 const money = (value: number) => new Intl.NumberFormat("en-UG", {
@@ -42,7 +43,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const selectedDate = validCalendarDate && requestedDate <= today ? requestedDate : today;
   const { start, end } = dayBounds(selectedDate);
 
-  const [paymentsResult, expensesResult, refundsResult, sessionsResult, liabilitiesResult] = await Promise.all([
+  const [paymentsResult, expensesResult, refundsResult, sessionsResult, liabilitiesResult, payrollResult] = await Promise.all([
     db.from("payments").select("amount,payment_method,status,created_at")
       .in("status", ["completed", "refunded"]).gte("created_at", start).lt("created_at", end),
     db.from("expenses").select("id,title,amount,payment_status,paid_at,created_at")
@@ -52,6 +53,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     db.from("cashier_sessions").select("id,cashier_id,opening_float,cash_sales,non_cash_sales,cash_expenses,expected_cash,closing_cash,cash_variance,status,opened_at,closed_at")
       .gte("opened_at", start).lt("opened_at", end).order("opened_at", { ascending: false }),
     db.from("expenses").select("id,amount").eq("approval_status", "approved").eq("payment_status", "unpaid"),
+    db.from("payroll_items").select("id,net_pay,paid_at,payment_reference").eq("payment_status", "paid").gte("paid_at", start).lt("paid_at", end),
   ]);
 
   const payments = (paymentsResult.data || []) as Payment[];
@@ -59,6 +61,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const refunds = (refundsResult.data || []) as Refund[];
   const sessions = (sessionsResult.data || []) as Session[];
   const liabilities = liabilitiesResult.data || [];
+  const payrollPayments = (payrollResult.data || []) as PayrollPayment[];
 
   const grossCollections = payments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const cashCollections = payments.filter((row) => row.payment_method === "cash")
@@ -68,8 +71,10 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const unclassifiedCollections = payments.filter((row) => row.payment_method == null)
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidExpenses = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const paidPayroll = payrollPayments.reduce((sum, row) => sum + Number(row.net_pay || 0), 0);
+  const totalPaidOutflows = paidExpenses + paidPayroll;
   const processedRefunds = refunds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const netMovement = grossCollections - paidExpenses - processedRefunds;
+  const netMovement = grossCollections - totalPaidOutflows - processedRefunds;
   const outstandingApproved = liabilities.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const varianceTotal = sessions.filter((row) => row.status === "closed")
     .reduce((sum, row) => sum + Number(row.cash_variance || 0), 0);
@@ -80,6 +85,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     refundsResult.error && "refunds (apply migration 0012)",
     sessionsResult.error && "cashier sessions (apply migration 0011)",
     liabilitiesResult.error && "approved expense commitments",
+    payrollResult.error && "payroll payments (apply migration 0013)",
   ].filter(Boolean);
 
   const exportRows = [
@@ -93,7 +99,9 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     ["Non-cash collections", String(nonCashCollections)],
     ["Unclassified payment method", String(unclassifiedCollections)],
     ["Processed refunds", String(processedRefunds)],
-    ["Paid expenses", String(paidExpenses)],
+    ["Paid operating expenses", String(paidExpenses)],
+    ["Paid payroll", String(paidPayroll)],
+    ["Total paid outflows", String(totalPaidOutflows)],
     ["Net recorded movement", String(netMovement)],
     ["Current approved unpaid expenses", String(outstandingApproved)],
     ["Closed cashier shift variance", String(varianceTotal)],
@@ -130,7 +138,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
         {[
           ["Gross collections", grossCollections, "Completed and fully refunded payment records"],
           ["Processed refunds", processedRefunds, "Refunds actually settled and recorded"],
-          ["Paid expenses", paidExpenses, "Expenses marked paid on this date"],
+          ["Paid expenses incl. payroll", totalPaidOutflows, "Operating expenses and salary payments actually recorded"],
           ["Net recorded movement", netMovement, "Collections less processed refunds and paid expenses"],
         ].map(([label, value, detail]) => (
           <article key={String(label)} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
@@ -149,7 +157,8 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
             <div className="flex justify-between py-3"><span>Non-cash collections</span><b>{money(nonCashCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Unclassified payment method</span><b>{money(unclassifiedCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Processed refunds</span><b className="text-rose-700">−{money(processedRefunds)}</b></div>
-            <div className="flex justify-between py-3"><span>Paid expenses</span><b className="text-rose-700">−{money(paidExpenses)}</b></div>
+            <div className="flex justify-between py-3"><span>Paid operating expenses</span><b className="text-rose-700">−{money(paidExpenses)}</b></div>
+            <div className="flex justify-between py-3"><span>Paid payroll</span><b className="text-rose-700">−{money(paidPayroll)}</b></div>
             <div className="flex justify-between py-3 font-semibold"><span>Net recorded movement</span><b>{money(netMovement)}</b></div>
           </div>
         </article>
@@ -191,7 +200,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
       </section>
 
       <p className="text-xs text-gray-400">
-        This is an operational cash-movement report, not an audited profit-and-loss statement. It excludes unpaid expenses, inventory consumption, depreciation, taxes, accrual adjustments and revenue not yet represented by a completed payment. A fully refunded payment remains in gross collections where its payment status is retained as refunded, then its processed refund is deducted here.
+        This is an operational cash-movement report, not an audited profit-and-loss statement. It excludes unpaid expenses, inventory consumption, depreciation, taxes, accrual adjustments and revenue not yet represented by a completed payment. Payroll is included only after a salary payment is recorded as completed. A fully refunded payment remains in gross collections where its payment status is retained as refunded, then its processed refund is deducted here.
       </p>
     </div>
   );
