@@ -35,7 +35,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const today = kampalaDate(new Date());
   const requestedDate = searchParams?.date || today;
   const parsedDate = new Date(requestedDate + "T00:00:00Z");
-  const validCalendarDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(requestedDate)
+  const validCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
     && !Number.isNaN(parsedDate.getTime())
     && parsedDate.toISOString().slice(0, 10) === requestedDate;
   const selectedDate = validCalendarDate && requestedDate <= today ? requestedDate : today;
