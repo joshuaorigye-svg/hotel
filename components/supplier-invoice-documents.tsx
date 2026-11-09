@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {useRouter} from "next/navigation";
 import {createClient} from "@/lib/supabase/client";
 
 type Evidence={
@@ -32,6 +33,7 @@ export function SupplierInvoiceDocuments({
  documents:Evidence[];
 }){
  const db=createClient();
+ const router=useRouter();
  const [file,setFile]=useState<File|null>(null);
  const [kind,setKind]=useState<Evidence["document_type"]>("invoice");
  const [busy,setBusy]=useState("");
@@ -68,7 +70,7 @@ export function SupplierInvoiceDocuments({
    setFile(null);
    const input=document.getElementById("supplier-evidence-"+invoiceId) as HTMLInputElement|null;
    if(input)input.value="";
-   window.location.reload();
+   router.refresh();
   }
   setBusy("");
  }
