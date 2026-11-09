@@ -76,25 +76,23 @@ create policy "owner reads payroll items" on public.payroll_items
 
 create or replace function public.staff_can_read_payroll_item(p_run_id uuid, p_staff_id uuid)
 returns boolean
-language sql stable security definer set search_path = public as $
+language sql stable security definer set search_path = public as $$
   select p_staff_id = auth.uid() and exists (
     select 1 from public.payroll_runs r
     where r.id = p_run_id and r.status in ('approved','partially_paid','paid')
-  );
-$;
+  );\n$$;
 revoke all on function public.staff_can_read_payroll_item(uuid,uuid) from public;
 grant execute on function public.staff_can_read_payroll_item(uuid,uuid) to authenticated;
 
 create or replace function public.staff_can_read_payroll_run(p_run_id uuid)
 returns boolean
-language sql stable security definer set search_path = public as $
+language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.payroll_runs r
     join public.payroll_items i on i.payroll_run_id = r.id
     where r.id = p_run_id and i.staff_id = auth.uid()
       and r.status in ('approved','partially_paid','paid')
-  );
-$;
+  );\n$$;
 revoke all on function public.staff_can_read_payroll_run(uuid) from public;
 grant execute on function public.staff_can_read_payroll_run(uuid) to authenticated;
 
