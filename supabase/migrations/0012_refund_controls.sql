@@ -115,7 +115,7 @@ create or replace function public.record_refund_processed(
   p_refund_reference text
 ) returns void
 language plpgsql security definer set search_path=public as $$
-declare request_row public.refund_requests%rowtype; refunded_total numeric(14,2);
+declare request_row public.refund_requests%rowtype; payment_row public.payments%rowtype; refunded_total numeric(14,2);
 begin
   if not public.is_owner() then raise exception 'Owner access required'; end if;
   if length(trim(coalesce(p_refund_reference,'')))<3 then
@@ -124,6 +124,10 @@ begin
   select * into request_row from public.refund_requests where id=p_refund_request_id for update;
   if not found then raise exception 'Refund request not found'; end if;
   if request_row.status<>'approved' then raise exception 'Only approved refunds can be marked processed'; end if;
+  -- Serialize settlement for requests against the same payment so concurrent
+  -- partial refunds cannot leave the parent payment in the wrong final state.
+  select * into payment_row from public.payments where id=request_row.payment_id for update;
+  if not found or payment_row.status not in ('completed','refunded') then raise exception 'Original payment is not eligible for refund settlement'; end if;
   update public.refund_requests
   set status='processed',refund_reference=trim(p_refund_reference),
       processed_by=auth.uid(),processed_at=now(),updated_at=now()
