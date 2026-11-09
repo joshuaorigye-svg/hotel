@@ -35,8 +35,6 @@ create table if not exists public.inventory_supplier_invoices (
     check(char_length(trim(invoice_number)) between 1 and 100),
   constraint inventory_supplier_invoice_due_date_check
     check(due_date is null or due_date >= invoice_date),
-  constraint inventory_supplier_invoice_supplier_number_unique
-    unique(supplier_id, invoice_number)
 );
 
 create table if not exists public.inventory_supplier_invoice_lines (
@@ -57,7 +55,8 @@ create index if not exists inventory_supplier_invoices_department_idx
 create index if not exists inventory_supplier_invoice_lines_invoice_idx
   on public.inventory_supplier_invoice_lines(invoice_id);
 create unique index if not exists inventory_supplier_invoice_number_ci_unique
-  on public.inventory_supplier_invoices(supplier_id,lower(invoice_number));
+  on public.inventory_supplier_invoices(supplier_id,lower(invoice_number))
+  where status<>'rejected';
 
 alter table public.inventory_supplier_invoices enable row level security;
 alter table public.inventory_supplier_invoice_lines enable row level security;
@@ -135,6 +134,7 @@ begin
   if exists(
     select 1 from public.inventory_supplier_invoices
     where supplier_id=po.supplier_id and lower(invoice_number)=lower(trim(p_invoice_number))
+      and status<>'rejected'
   ) then raise exception 'This supplier invoice number has already been recorded'; end if;
 
   insert into public.inventory_supplier_invoices(
