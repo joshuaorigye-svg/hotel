@@ -15,6 +15,7 @@ const links = [
   ["/owner/reports", "Reports", ChartNoAxesCombined],
   ["/owner/finance", "Finance", Wallet],
   ["/owner/finance/daily", "Daily reconciliation", Receipt],
+  ["/owner/finance/performance", "Financial performance", ChartNoAxesCombined],
   ["/owner/audit", "Activity log", ClipboardList],
   ["/owner/integrations", "Integrations", PlugZap],
 ] as const;
