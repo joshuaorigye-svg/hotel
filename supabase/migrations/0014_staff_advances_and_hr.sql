@@ -174,6 +174,9 @@ begin
   if not exists(select 1 from public.profiles where id=p_staff_id and is_active=true and role in ('staff','manager')) then
     raise exception 'Select an active hotel employee';
   end if;
+  if exists(select 1 from public.payroll_runs where period_start=p_effective_month) then
+    raise exception 'A payroll run already exists for that month. Choose a later month.';
+  end if;
   insert into public.salary_deduction_requests(staff_id,amount,reason,effective_month,requested_by)
   values(p_staff_id,p_amount,trim(p_reason),p_effective_month,auth.uid())
   returning id into request_id;
@@ -250,6 +253,9 @@ begin
   end if;
   select * into target from public.salary_deduction_requests where id=p_request_id for update;
   if not found or target.status <> 'pending' then raise exception 'Pending salary deduction request not found'; end if;
+  if p_decision='approve' and exists(select 1 from public.payroll_runs where period_start=target.effective_month) then
+    raise exception 'A payroll run already exists for that month. Reject this proposal and ask HR to submit it for a later month.';
+  end if;
   update public.salary_deduction_requests set
     status=case when p_decision='approve' then 'approved' else 'rejected' end,
     reviewed_by=auth.uid(),reviewed_at=now(),
