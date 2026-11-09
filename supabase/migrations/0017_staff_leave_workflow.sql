@@ -127,7 +127,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   target public.staff_leave%rowtype;
 begin
-  if p_decision not in ('approve','reject') then
+  if p_decision is null or p_decision not in ('approve','reject') then
     raise exception 'Choose approve or reject';
   end if;
   if p_decision = 'reject' and length(trim(coalesce(p_decision_note,''))) < 5 then
