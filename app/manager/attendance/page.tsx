@@ -24,7 +24,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
   const [attendanceResult, profilesResult, shiftsResult] = await Promise.all([
     db.from("attendance").select("id,staff_id,clock_in,clock_out,status").gte("clock_in",start.toISOString()).lt("clock_in",end.toISOString()).order("clock_in"),
     db.from("profiles").select("id,full_name"),
-    db.from("staff_shift_assignments").select("id,staff_id,shift_name,starts_at,ends_at").eq("status","scheduled").lt("starts_at",end.toISOString()).gt("ends_at",start.toISOString()).order("starts_at"),
+    db.from("staff_shift_assignments").select("id,staff_id,shift_name,starts_at,ends_at").eq("status","scheduled").gte("starts_at",start.toISOString()).lt("starts_at",end.toISOString()).order("starts_at"),
   ]);
   const names = new Map((profilesResult.data || []).map((person: any) => [person.id,person.full_name]));
   const rows = (attendanceResult.data || []).map((row: any) => ({...row,staff_name:names.get(row.staff_id)||"Employee"}));
