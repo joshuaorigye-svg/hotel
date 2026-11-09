@@ -295,11 +295,13 @@ declare line public.inventory_stocktake_lines%rowtype; stocktake public.inventor
 begin
  if public.current_user_role() not in('owner','manager') then raise exception 'Manager or owner access required'; end if;
  if p_counted_quantity is null or p_counted_quantity<0 then raise exception 'Counted quantity cannot be negative'; end if;
- select * into line from public.inventory_stocktake_lines where id=p_line_id for update;
+ select * into line from public.inventory_stocktake_lines where id=p_line_id;
  if not found then raise exception 'Stocktake line not found'; end if;
  select * into stocktake from public.inventory_stocktakes where id=line.stocktake_id for update;
- if stocktake.status<>'draft' then raise exception 'Only draft stocktakes can be edited'; end if;
+ if not found or stocktake.status<>'draft' then raise exception 'Only draft stocktakes can be edited'; end if;
  if not public.is_owner() and stocktake.department_id<>public.current_user_department() then raise exception 'This stocktake belongs to another department'; end if;
+ select * into line from public.inventory_stocktake_lines where id=p_line_id and stocktake_id=stocktake.id for update;
+ if not found then raise exception 'Stocktake line not found'; end if;
  update public.inventory_stocktake_lines set counted_quantity=p_counted_quantity where id=line.id;
 end; $$;
 
