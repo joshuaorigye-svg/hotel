@@ -117,6 +117,9 @@ begin
       raise exception 'Assignee must be active in the incident department';
     end if;
   end if;
+  if target.status in ('closed','cancelled') and p_status<>target.status then
+    raise exception 'Closed or cancelled incidents cannot be reopened through this workflow';
+  end if;
   if p_status='closed' and target.status not in ('resolved','closed') then
     raise exception 'Resolve the incident before closing it';
   end if;
