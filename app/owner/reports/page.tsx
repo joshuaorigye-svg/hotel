@@ -13,7 +13,8 @@ import {
 export const dynamic = "force-dynamic";
 
 type Payment = { amount: number | string | null; created_at: string };
-type Expense = { amount: number | string | null; created_at: string; department_id: string | null; departments?: { name: string } | { name: string }[] | null };
+type Expense = { amount: number | string | null; created_at: string; department_id: string | null };
+type StaffProfile = { department_id: string | null; departments?: { name: string } | { name: string }[] | null };
 type Booking = { check_in: string; check_out: string };
 type Attendance = { staff_id: string; status: string };
 type Task = { status: string };
@@ -89,11 +90,11 @@ export default async function Reports() {
   const [payments, expenses, bookings, rooms, attendance, staff, tasks, orders, inventory] =
     await Promise.all([
       db.from("payments").select("amount,created_at").eq("status", "completed").gte("created_at", from).order("created_at"),
-      db.from("expenses").select("amount,created_at,department_id,departments(name)").eq("approval_status", "approved").gte("created_at", from),
+      db.from("expenses").select("amount,created_at,department_id").eq("approval_status", "approved").gte("created_at", from),
       db.from("bookings").select("check_in,check_out").in("status", ["confirmed", "checked_in", "checked_out"]).gte("check_out", fromDate).lte("check_in", todayKey),
       db.from("rooms").select("id").eq("is_active", true),
       db.from("attendance").select("staff_id,status").gte("clock_in", from),
-      db.from("profiles").select("id").eq("is_active", true),
+      db.from("profiles").select("id,department_id,departments(name)").eq("is_active", true),
       db.from("tasks").select("status").gte("created_at", from),
       db.from("restaurant_orders").select("total_amount").gte("created_at", from).neq("status", "cancelled"),
       db.from("inventory_items").select("quantity,low_stock_threshold").eq("is_active", true),
@@ -103,6 +104,7 @@ export default async function Reports() {
   const hasErrors = results.some((result) => result.error);
   const paymentRows = (payments.data || []) as Payment[];
   const expenseRows = (expenses.data || []) as Expense[];
+  const staffProfiles = (staff.data || []) as StaffProfile[];
   const bookingRows = (bookings.data || []) as Booking[];
   const roomCount = rooms.data?.length || 0;
   const attendanceRows = (attendance.data || []) as Attendance[];
@@ -141,7 +143,8 @@ export default async function Reports() {
   ).length;
   const departmentTotals = new Map<string, number>();
   for (const expense of expenseRows) {
-    const relation = expense.departments;
+    const profile = staffProfiles.find((row) => row.department_id === expense.department_id);
+    const relation = profile?.departments;
     const departmentName = Array.isArray(relation) ? relation[0]?.name : relation?.name;
     const key = departmentName || "Unassigned";
     departmentTotals.set(key, (departmentTotals.get(key) || 0) + Number(expense.amount || 0));
@@ -188,7 +191,7 @@ export default async function Reports() {
         <Metric label="Net recorded cash movement" value={money(revenue - expensesTotal)} detail="Payments less approved expenses, not audited profit" icon={CalendarDays} />
         <Metric label="Estimated room occupancy" value={occupancy.toFixed(1) + "%"} detail={roomCount + " active rooms; booking-date estimate"} icon={BedDouble} />
         <Metric label="Estimated room nights" value={roomNights.toLocaleString("en-UG", { maximumFractionDigits: 0 })} detail="Past booking nights in the reporting period" icon={BedDouble} />
-        <Metric label="Staff clocked in" value={String(currentlyClockedIn)} detail={(staff.data || []).length + " active staff accounts"} icon={Users} />
+        <Metric label="Staff clocked in" value={String(currentlyClockedIn)} detail={staffProfiles.length + " active staff accounts"} icon={Users} />
         <Metric label="Tasks completed" value={String(completedTasks)} detail="Tasks created during this reporting period" icon={ClipboardCheck} />
         <Metric label="Restaurant & bar orders" value={String(orderRows.length)} detail={money(orderRows.reduce((sum, row) => sum + Number(row.total_amount || 0), 0)) + " order value; not added to payments"} icon={Utensils} />
       </section>
