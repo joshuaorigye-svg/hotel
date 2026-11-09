@@ -119,7 +119,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
         <div>
           <p className="text-sm font-medium text-gold">OWNER OFFICE</p>
           <h1 className="mt-1 text-2xl font-semibold text-forest md:text-3xl">Daily reconciliation</h1>
-          <p className="mt-2 text-sm text-gray-500">A cash-basis view of recorded collections, settled refunds and expenses.</p>
+          <p className="mt-2 text-sm text-gray-500">A cash-basis view of collections, settled refunds, operating expenses, payroll and staff advance disbursements.</p>
         </div>
         <ReportExport rows={exportRows} filename={"buladde-daily-finance-" + selectedDate + ".csv"} />
       </header>
