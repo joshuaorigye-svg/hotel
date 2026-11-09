@@ -32,11 +32,12 @@ export function InventoryWorkspace({role,userId,departmentId,departments,items,s
  const [transferItem,setTransferItem]=useState(""),[transferDept,setTransferDept]=useState(""),[transferQty,setTransferQty]=useState(""),[transferNote,setTransferNote]=useState("");
  const [stocktakeDept,setStocktakeDept]=useState(departmentId||departments[0]?.id||""),[stocktakeNote,setStocktakeNote]=useState(""),[counts,setCounts]=useState<Record<string,string>>({});
  const [decisionNotes,setDecisionNotes]=useState<Record<string,string>>({});
- const [filter,setFilter]=useState("all");\n const [issueItem,setIssueItem]=useState(items[0]?.id||""),[issueQty,setIssueQty]=useState(""),[issuePurpose,setIssuePurpose]=useState("");\n const [adjustItem,setAdjustItem]=useState(items[0]?.id||""),[adjustQty,setAdjustQty]=useState(""),[adjustType,setAdjustType]=useState("waste"),[adjustNote,setAdjustNote]=useState("");
+ const [filter,setFilter]=useState("all");
+ const [issueItem,setIssueItem]=useState(items[0]?.id||""),[issueQty,setIssueQty]=useState(""),[issuePurpose,setIssuePurpose]=useState("");
+ const [adjustItem,setAdjustItem]=useState(items[0]?.id||""),[adjustQty,setAdjustQty]=useState(""),[adjustType,setAdjustType]=useState("waste"),[adjustNote,setAdjustNote]=useState("");
  const activeItems=useMemo(()=>rows.filter(x=>x.is_active&&(role==="owner"||x.department_id===departmentId)),[rows,role,departmentId]);
  const stockValue=activeItems.reduce((sum,x)=>sum+Number(x.quantity)*Number(x.unit_cost),0);
  const low=activeItems.filter(x=>Number(x.quantity)<=Number(x.low_stock_threshold));
- const stockDepts=role==="owner"?departments:departments.filter(d=>d.id===departmentId);
  const itemsForDept=(id:string)=>rows.filter(x=>x.is_active&&x.department_id===id);
  function statusClass(s:string){return s==="approved"||s==="received"||s==="completed"?"bg-emerald-50 text-emerald-800":s==="rejected"?"bg-rose-50 text-rose-700":s==="pending"||s==="requested"||s==="submitted"||s==="partially_received"?"bg-amber-50 text-amber-800":"bg-gray-100 text-gray-700";}
  async function addItem(e:React.FormEvent){e.preventDefault();setBusy("item");setError("");setMessage("");
