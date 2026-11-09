@@ -24,7 +24,7 @@ export default async function ManagerLeavePage() {
   return (
     <main className="space-y-6">
       <header><p className="text-xs font-bold tracking-widest text-gold">MANAGER WORKSPACE</p><h1 className="mt-2 text-3xl font-semibold text-forest">Department leave requests</h1><p className="mt-2 text-sm text-gray-500">Review leave requests for your department. HR managers can see the hotel-wide register.</p></header>
-      {failed ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Leave data could not be loaded. Confirm migration 0017 has been reviewed and applied.</p> : <LeaveManagement mode="review" requests={requests as any} />}
+      {failed ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Leave data could not be loaded. Confirm migration 0017 has been reviewed and applied.</p> : <section className="space-y-4"><div><h2 className="text-xl font-semibold text-forest">My leave request</h2><p className="mt-1 text-sm text-gray-500">Managers can request leave too. Another authorised reviewer must make the decision.</p></div><LeaveManagement mode="staff" requests={requests.filter((item: any) => item.staff_id === user.id) as any} /></section><LeaveManagement mode="review" requests={requests as any} />}
     </main>
   );
 }
