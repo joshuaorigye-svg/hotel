@@ -48,7 +48,8 @@ export default async function PayrollPage() {
         <h1 className="mt-1 text-2xl font-semibold text-forest md:text-3xl">Staff payroll</h1>
         <p className="mt-2 text-sm text-gray-500">Set salary terms, prepare monthly payroll, approve it and record completed payments.</p>
       </header>
-      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />\n      <AdvanceDeductionControls advances={(advancesResult.data || []) as any} deductions={(deductionsResult.data || []) as any} names={namesForControls} repaid={repaid} loadError={requestError} />
+      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />
+      <AdvanceDeductionControls advances={(advancesResult.data || []) as any} deductions={(deductionsResult.data || []) as any} names={namesForControls} repaid={repaid} loadError={requestError} />
     </div>
   );
 }
