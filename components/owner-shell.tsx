@@ -20,6 +20,7 @@ const links = [
   ["/owner/payroll", "Staff payroll", Banknote],
   ["/owner/leave", "Leave oversight", CalendarDays],
   ["/owner/attendance", "Attendance", CalendarDays],
+  ["/owner/schedule", "Shift roster", CalendarDays],
   ["/owner/audit", "Activity log", ClipboardList],
   ["/owner/integrations", "Integrations", PlugZap],
 ] as const;
