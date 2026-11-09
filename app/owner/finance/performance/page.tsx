@@ -201,7 +201,8 @@ export default async function FinancialPerformance({
                 <div title={"Expenses, payroll, advances and refunds " + money(row.expenses + row.payroll + row.refunds)} className="min-w-1 flex-1 rounded-t bg-amber-500" style={{ height: Math.max(row.expenses + row.payroll + row.refunds ? 3 : 0, ((row.expenses + row.payroll + row.refunds) / maxBar) * 100) + "%" }} />
               </div>
               <p className="mt-1 truncate text-[10px] text-gray-400">Paid operating expenses: {money(row.expenses)}</p>
-              <p className="truncate text-[10px] text-gray-400">Paid payroll: {money(row.payroll)}</p>\n              <p className="truncate text-[10px] text-gray-400">Staff advances: {money(row.advances)}</p>
+              <p className="truncate text-[10px] text-gray-400">Paid payroll: {money(row.payroll)}</p>
+              <p className="truncate text-[10px] text-gray-400">Staff advances: {money(row.advances)}</p>
               <p className="truncate text-[10px] text-gray-400">Refunds: {money(row.refunds)}</p>
             </div>
           ))}
