@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Staff = { id: string; full_name: string; role: string; salary: { base_salary: number | string; allowances: number | string; default_deductions: number | string; effective_from: string } | null };
-type Item = { id: string; staff_id: string; base_salary: number | string; allowances: number | string; deductions: number | string; advance_deductions?: number | string; other_deductions?: number | string; net_pay: number | string; payment_status: string; payment_method: string | null; payment_reference: string | null; staff?: { full_name: string } };
+type Item = { id: string; staff_id: string; base_salary: number | string; allowances: number | string; deductions: number | string; advance_deductions?: number | string; other_deductions?: number | string; net_pay: number | string; payment_status: string; payment_method: string | null; payment_reference: string | null; paid_at?: string | null; staff?: { full_name: string } };
 type Run = { id: string; period_start: string; period_end: string; status: string; total_gross: number | string; total_deductions: number | string; total_net: number | string; cancellation_reason?: string | null; items: Item[] };
 const money = (value: number | string) => new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -49,6 +49,30 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
     }
     return result;
   }, [runs]);
+  const reconciledRuns = useMemo(() => runs.filter((run) => run.status !== "draft" && run.status !== "cancelled"), [runs]);
+  const reconciliation = useMemo(() => {
+    const rows = reconciledRuns.flatMap((run) => run.items.map((item) => ({ ...item, period: run.period_start })));
+    const paidRows = rows.filter((item) => item.payment_status === "paid");
+    const expected = rows.reduce((sum, item) => sum + Number(item.net_pay || 0), 0);
+    const paid = paidRows.reduce((sum, item) => sum + Number(item.net_pay || 0), 0);
+    const methods = paidRows.reduce((sum: Record<string, number>, item) => {
+      const method = item.payment_method || "not_recorded";
+      sum[method] = (sum[method] || 0) + Number(item.net_pay || 0);
+      return sum;
+    }, {});
+    return { rows, paidRows, expected, paid, outstanding: Math.max(0, expected - paid), methods };
+  }, [reconciledRuns]);
+  function exportReconciliation() {
+    const header = ["Payroll month", "Staff member", "Net pay UGX", "Payment status", "Payment method", "Payment reference", "Recorded paid at"];
+    const lines = reconciliation.rows.map((item) => [item.period, item.staff?.full_name || "Staff member", String(Number(item.net_pay) || 0), item.payment_status, item.payment_method || "", item.payment_reference || "", item.paid_at || ""]);
+    const csv = [header, ...lines].map((line) => line.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "buladde-payroll-reconciliation.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   const feedback = (text: string, error = false) => { setMessage(text); setIsError(error); };
 
   async function saveSalary(event: React.FormEvent<HTMLFormElement>) {
@@ -138,6 +162,28 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
       </section>
 
       <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">OWNER FINANCE CONTROL</p><h2 className="mt-1 text-xl font-semibold text-forest">Payroll reconciliation</h2><p className="mt-1 text-sm text-gray-500">Compare approved salary commitments with payments recorded by the owner.</p></div>
+          <button type="button" onClick={exportReconciliation} disabled={!reconciliation.rows.length} className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-forest disabled:opacity-40">Export register CSV</button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-[#EAE6DC] bg-white p-4 shadow-soft"><p className="text-xs text-gray-500">Approved net payroll</p><p className="mt-2 text-xl font-semibold text-forest">{money(reconciliation.expected)}</p><p className="mt-1 text-xs text-gray-400">{reconciliation.rows.length} salary entries</p></div>
+          <div className="rounded-2xl border border-[#EAE6DC] bg-white p-4 shadow-soft"><p className="text-xs text-gray-500">Payments recorded</p><p className="mt-2 text-xl font-semibold text-emerald-700">{money(reconciliation.paid)}</p><p className="mt-1 text-xs text-gray-400">{reconciliation.paidRows.length} staff marked paid</p></div>
+          <div className="rounded-2xl border border-[#EAE6DC] bg-white p-4 shadow-soft"><p className="text-xs text-gray-500">Outstanding liability</p><p className="mt-2 text-xl font-semibold text-amber-700">{money(reconciliation.outstanding)}</p><p className="mt-1 text-xs text-gray-400">{reconciliation.rows.length - reconciliation.paidRows.length} salaries awaiting payment</p></div>
+          <div className="rounded-2xl border border-[#EAE6DC] bg-white p-4 shadow-soft"><p className="text-xs text-gray-500">Recorded payment methods</p><div className="mt-2 space-y-1 text-sm font-medium text-forest">{Object.keys(reconciliation.methods).length ? Object.entries(reconciliation.methods).map(([method, amount]) => <p key={method} className="flex justify-between gap-2"><span className="capitalize">{method.replaceAll("_", " ")}</span><span>{money(amount)}</span></p>) : <p className="text-sm text-gray-400">No payments recorded</p>}</div></div>
+        </div>
+        {!reconciliation.rows.length ? <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">Approved payroll will appear here when a draft is approved.</div> : reconciledRuns.map((run) => {
+          const paidItems = run.items.filter((item) => item.payment_status === "paid");
+          const expected = run.items.reduce((sum, item) => sum + Number(item.net_pay || 0), 0);
+          const paid = paidItems.reduce((sum, item) => sum + Number(item.net_pay || 0), 0);
+          const remaining = Math.max(0, expected - paid);
+          const percent = expected > 0 ? Math.min(100, (paid / expected) * 100) : 0;
+          return <article key={run.id} className="rounded-2xl border border-[#EAE6DC] bg-white p-4 shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-forest">{new Intl.DateTimeFormat("en-UG", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(run.period_start + "T00:00:00Z"))}</h3><p className="mt-1 text-xs text-gray-500">{paidItems.length} of {run.items.length} salaries recorded as paid</p></div><span className={remaining > 0 ? "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800" : "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"}>{remaining > 0 ? "Payment outstanding" : "Fully recorded"}</span></div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: percent + "%" }} /></div>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3"><p><span className="block text-xs text-gray-500">Expected net</span><strong className="mt-1 block text-forest">{money(expected)}</strong></p><p><span className="block text-xs text-gray-500">Recorded paid</span><strong className="mt-1 block text-emerald-700">{money(paid)}</strong></p><p><span className="block text-xs text-gray-500">Remaining liability</span><strong className="mt-1 block text-amber-700">{money(remaining)}</strong></p></div>
+          </article>;
+        })}
         <div><h2 className="text-lg font-semibold text-forest">Payroll history</h2><p className="mt-1 text-sm text-gray-500">Approve each draft before recording any payment.</p></div>
         {!runs.length ? <div className="rounded-2xl border border-[#EAE6DC] bg-white p-8 text-center text-sm text-gray-500">No payroll runs yet. Save salary settings, then prepare a month.</div> : runs.map((run) => (
           <article key={run.id} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
@@ -157,7 +203,7 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
               <button onClick={() => approveRun(run.id)} disabled={!!busy || !!reviewByRun[run.id]?.errors.length} title={reviewByRun[run.id]?.errors.length ? "Resolve payroll review issues before approval" : "Approve reviewed payroll"} className="rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === run.id ? "Working…" : "Approve payroll"}</button>
             </div>}
             {run.status === "cancelled" && <p className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Cancelled {run.cancellation_reason ? `· ${run.cancellation_reason}` : ""}. You can prepare this month again.</p>}
-            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-2 pr-3">Staff member</th><th className="py-2 pr-3">Base</th><th className="py-2 pr-3">Allowances</th><th className="py-2 pr-3">Deductions</th><th className="py-2 pr-3">Net pay</th><th className="py-2">Payment</th></tr></thead><tbody>{run.items.map((item) => <tr key={item.id} className="border-b border-gray-100 last:border-0"><td className="py-3 pr-3 font-medium">{item.staff?.full_name || "Staff member"}</td><td className="py-3 pr-3">{money(item.base_salary)}</td><td className="py-3 pr-3">{money(item.allowances)}</td><td className="py-3 pr-3">{money(item.deductions)}<p className="mt-1 text-[10px] text-gray-400">Advance {money(item.advance_deductions || 0)} · Other {money(item.other_deductions || 0)}</p></td><td className="py-3 pr-3 font-semibold">{money(item.net_pay)}</td><td className="py-3">{item.payment_status === "paid" ? <span className="text-emerald-700">Paid · {item.payment_reference}</span> : run.status !== "draft" ? <div className="flex min-w-52 gap-2"><select aria-label="Payment method" value={methods[item.id] || "mobile_money"} onChange={(e) => setMethods((old) => ({ ...old, [item.id]: e.target.value }))} className="w-28 rounded border px-2 py-1 text-xs"><option value="mobile_money">Mobile money</option><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option></select><input aria-label="Payment reference" value={references[item.id] || ""} onChange={(e) => setReferences((old) => ({ ...old, [item.id]: e.target.value }))} placeholder="Receipt ref" className="w-28 rounded border px-2 py-1 text-xs" /><button onClick={() => recordPayment(item.id)} disabled={!!busy} className="rounded bg-forest px-2 py-1 text-xs text-white disabled:opacity-50">{busy === item.id ? "…" : "Record"}</button></div> : <span className="text-gray-400">Awaiting approval</span>}</td></tr>)}</tbody></table></div>
+            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-2 pr-3">Staff member</th><th className="py-2 pr-3">Base</th><th className="py-2 pr-3">Allowances</th><th className="py-2 pr-3">Deductions</th><th className="py-2 pr-3">Net pay</th><th className="py-2">Payment</th></tr></thead><tbody>{run.items.map((item) => <tr key={item.id} className="border-b border-gray-100 last:border-0"><td className="py-3 pr-3 font-medium">{item.staff?.full_name || "Staff member"}</td><td className="py-3 pr-3">{money(item.base_salary)}</td><td className="py-3 pr-3">{money(item.allowances)}</td><td className="py-3 pr-3">{money(item.deductions)}<p className="mt-1 text-[10px] text-gray-400">Advance {money(item.advance_deductions || 0)} · Other {money(item.other_deductions || 0)}</p></td><td className="py-3 pr-3 font-semibold">{money(item.net_pay)}</td><td className="py-3">{item.payment_status === "paid" ? <span className="text-emerald-700">Paid · {item.payment_method || "Method not recorded"}<span className="block text-[10px] text-gray-500">Ref: {item.payment_reference || "Not recorded"}{item.paid_at ? " · " + new Date(item.paid_at).toLocaleString("en-UG", { timeZone: "Africa/Kampala" }) : ""}</span></span> : run.status !== "draft" ? <div className="flex min-w-52 gap-2"><select aria-label="Payment method" value={methods[item.id] || "mobile_money"} onChange={(e) => setMethods((old) => ({ ...old, [item.id]: e.target.value }))} className="w-28 rounded border px-2 py-1 text-xs"><option value="mobile_money">Mobile money</option><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option></select><input aria-label="Payment reference" value={references[item.id] || ""} onChange={(e) => setReferences((old) => ({ ...old, [item.id]: e.target.value }))} placeholder="Receipt ref" className="w-28 rounded border px-2 py-1 text-xs" /><button onClick={() => recordPayment(item.id)} disabled={!!busy} className="rounded bg-forest px-2 py-1 text-xs text-white disabled:opacity-50">{busy === item.id ? "…" : "Record"}</button></div> : <span className="text-gray-400">Awaiting approval</span>}</td></tr>)}</tbody></table></div>
           </article>
         ))}
       </section>
