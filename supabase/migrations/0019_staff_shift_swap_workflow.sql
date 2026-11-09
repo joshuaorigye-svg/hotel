@@ -11,6 +11,7 @@ create table if not exists public.staff_shift_swap_requests (
   status text not null default 'pending_target'
     check (status in ('pending_target','declined','pending_manager','approved','rejected','cancelled')),
   target_responded_at timestamptz,
+  request_note text,
   target_note text,
   reviewed_by uuid references public.profiles(id),
   reviewed_at timestamptz,
@@ -120,7 +121,7 @@ begin
   end if;
 
   insert into public.staff_shift_swap_requests(
-    department_id,requester_id,target_id,requester_shift_id,target_shift_id,target_note
+    department_id,requester_id,target_id,requester_shift_id,target_shift_id,request_note
   ) values (
     own_shift.department_id,auth.uid(),other_shift.staff_id,own_shift.id,other_shift.id,
     nullif(trim(coalesce(p_note,'')),'')
@@ -150,7 +151,7 @@ begin
   end if;
   if p_response='accept' then
     update public.staff_shift_swap_requests set status='pending_manager',
-      target_responded_at=now(),target_note=coalesce(nullif(trim(coalesce(p_note,'')),''),target.target_note),
+      target_responded_at=now(),target_note=nullif(trim(coalesce(p_note,'')),''),
       updated_at=now() where id=target.id;
   else
     update public.staff_shift_swap_requests set status='declined',
