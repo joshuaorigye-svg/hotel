@@ -4,12 +4,13 @@ import {useMemo,useState} from "react";
 import {useRouter} from "next/navigation";
 import {createClient} from "@/lib/supabase/client";
 import {SupplierInvoiceDocuments} from "@/components/supplier-invoice-documents";
+import {SupplierStatementWorkspace} from "@/components/supplier-statement-workspace";
 
 type POLine={id:string;inventory_item_id:string;quantity_ordered:number;quantity_received:number;quantity_invoiced:number;unit_cost:number;inventory_items?:{name:string;unit:string}|null};
 type PurchaseOrder={id:string;order_number:number;department_id:string;status:string;inventory_suppliers?:{name:string}|null;inventory_purchase_order_items:POLine[]};
 type InvoiceLine={id:string;quantity:number;unit_price:number;line_total:number;inventory_items?:{name:string;unit:string}|null};
 type InvoiceDocument={id:string;file_name:string;mime_type:string;size_bytes:number;document_type:"invoice"|"delivery_note"|"receipt"|"other";storage_path:string;created_at:string};
-type Invoice={id:string;invoice_number:string;invoice_date:string;due_date:string|null;total_amount:number;status:string;notes:string|null;review_note:string|null;payment_method:string|null;payment_reference:string|null;created_at:string;inventory_suppliers?:{name:string}|null;inventory_purchase_orders?:{order_number:number}|null;inventory_supplier_invoice_lines:InvoiceLine[];inventory_supplier_invoice_documents?:InvoiceDocument[]};
+type Invoice={id:string;supplier_id:string;invoice_number:string;invoice_date:string;due_date:string|null;total_amount:number;status:string;notes:string|null;review_note:string|null;payment_method:string|null;payment_reference:string|null;paid_at:string|null;reviewed_at:string|null;created_at:string;inventory_suppliers?:{name:string}|null;inventory_purchase_orders?:{order_number:number}|null;inventory_supplier_invoice_lines:InvoiceLine[];inventory_supplier_invoice_documents?:InvoiceDocument[]};
 
 const cash=(v:number|string)=>new Intl.NumberFormat("en-UG",{style:"currency",currency:"UGX",maximumFractionDigits:0}).format(Number(v)||0);
 const methods=["cash","mobile_money","bank_transfer","card","pesapal"];
@@ -135,6 +136,8 @@ export function SupplierInvoiceWorkspace({role,purchaseOrders,invoices}:{role:"o
   </section>}
 
   <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+  <SupplierStatementWorkspace invoices={invoices}/>
+
    <h2 className="font-semibold text-forest">Supplier invoice register</h2>
    <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-gray-50 text-xs text-gray-500"><tr><th className="p-3">Supplier / invoice</th><th className="p-3">Purchase order</th><th className="p-3">Invoice date</th><th className="p-3">Amount</th><th className="p-3">Status</th><th className="p-3">Payment</th><th className="p-3">Documents</th></tr></thead><tbody>
     {invoices.map(i=><tr key={i.id} className="border-t"><td className="p-3"><b className="text-forest">{i.inventory_suppliers?.name||"Supplier"}</b><p className="text-xs text-gray-500">{i.invoice_number}</p></td><td className="p-3">#{i.inventory_purchase_orders?.order_number??"—"}</td><td className="p-3">{i.invoice_date}</td><td className="p-3 font-medium">{cash(i.total_amount)}</td><td className="p-3"><span className={i.status==="paid"?"text-emerald-700":i.status==="rejected"?"text-rose-700":i.status==="pending"?"text-amber-700":"text-forest"}>{i.status}</span>{i.review_note&&<p className="max-w-[180px] text-xs text-gray-400">{i.review_note}</p>}</td><td className="p-3 text-xs">{i.status==="paid"?(i.payment_method||"Paid")+" · "+(i.payment_reference||"No reference"):"—"}</td><td className="min-w-[310px] p-3"><SupplierInvoiceDocuments invoiceId={i.id} status={i.status} role={role} documents={i.inventory_supplier_invoice_documents||[]}/></td></tr>)}
