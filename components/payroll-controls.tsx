@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type Staff = { id: string; full_name: string; role: string; salary: { base_salary: number | string; allowances: number | string; default_deductions: number | string; effective_from: string } | null };
 type Item = { id: string; staff_id: string; base_salary: number | string; allowances: number | string; deductions: number | string; advance_deductions?: number | string; other_deductions?: number | string; net_pay: number | string; payment_status: string; payment_method: string | null; payment_reference: string | null; staff?: { full_name: string } };
-type Run = { id: string; period_start: string; period_end: string; status: string; total_gross: number | string; total_deductions: number | string; total_net: number | string; items: Item[] };
+type Run = { id: string; period_start: string; period_end: string; status: string; total_gross: number | string; total_deductions: number | string; total_net: number | string; cancellation_reason?: string | null; items: Item[] };
 const money = (value: number | string) => new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(Number(value) || 0);
 
 export function PayrollControls({ staff, runs, migrationError = false }: { staff: Staff[]; runs: Run[]; migrationError?: boolean }) {
