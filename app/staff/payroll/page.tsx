@@ -26,7 +26,7 @@ export default async function MyPayslipsPage() {
       </header>
       {error ? (
         <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Payslips are not available yet. Ask the hotel administrator to confirm payroll migrations 0013 and 0014 have been applied.
+          Payslips are not available yet. Ask the hotel administrator to confirm payroll migrations 0013, 0014, 0015 and 0016 have been applied.
         </div>
       ) : !data?.length ? (
         <section className="rounded-2xl border border-[#EAE6DC] bg-white p-8 text-center text-sm text-gray-500">
