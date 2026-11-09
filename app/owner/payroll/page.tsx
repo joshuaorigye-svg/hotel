@@ -1,16 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { PayrollControls } from "@/components/payroll-controls";
+import { AdvanceDeductionControls } from "@/components/advance-deduction-controls";
 
 export const dynamic = "force-dynamic";
 
 export default async function PayrollPage() {
   const db = await createClient();
-  const [staffResult, salaryResult, runsResult, itemsResult, profilesResult] = await Promise.all([
+  const [staffResult, salaryResult, runsResult, itemsResult, profilesResult, advancesResult, deductionsResult, repaymentsResult] = await Promise.all([
     db.from("profiles").select("id,full_name,role").eq("is_active", true).in("role", ["staff", "manager"]).order("full_name"),
     db.from("staff_salary_settings").select("staff_id,base_salary,allowances,default_deductions,effective_from,is_active"),
     db.from("payroll_runs").select("id,period_start,period_end,status,total_gross,total_deductions,total_net").order("period_start", { ascending: false }),
     db.from("payroll_items").select("id,payroll_run_id,staff_id,base_salary,allowances,deductions,net_pay,payment_status,payment_method,payment_reference"),
     db.from("profiles").select("id,full_name"),
+    db.from("staff_advance_requests").select("id,staff_id,amount,repayment_per_month,reason,status,rejection_reason,disbursement_reference").order("created_at", { ascending: false }),
+    db.from("salary_deduction_requests").select("id,staff_id,amount,reason,effective_month,status,rejection_reason").order("created_at", { ascending: false }),
+    db.from("staff_advance_repayments").select("advance_id,amount,status"),
   ]);
 
   const salaries = new Map((salaryResult.data || []).map((row: any) => [row.staff_id, row]));
@@ -38,7 +42,7 @@ export default async function PayrollPage() {
         <h1 className="mt-1 text-2xl font-semibold text-forest md:text-3xl">Staff payroll</h1>
         <p className="mt-2 text-sm text-gray-500">Set salary terms, prepare monthly payroll, approve it and record completed payments.</p>
       </header>
-      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />
+      <PayrollControls staff={staff as any} runs={runs as any} migrationError={migrationError} />\n      <AdvanceDeductionControls advances={(advancesResult.data || []) as any} deductions={(deductionsResult.data || []) as any} names={names} repaid={repaid} loadError={requestError} />
     </div>
   );
 }
