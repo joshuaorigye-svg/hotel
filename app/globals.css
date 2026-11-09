@@ -73,3 +73,14 @@ button, input, select, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .workspace-theme { transition: none; }
 }
+
+.dark .workspace-theme [class*="bg-white/"] { background-color: var(--workspace-surface) !important; }
+.dark .workspace-theme .bg-gray-50,
+.dark .workspace-theme .bg-gray-100 { background-color: var(--workspace-surface-muted) !important; }
+.dark .workspace-theme .text-emerald-700,
+.dark .workspace-theme .text-amber-700,
+.dark .workspace-theme .text-amber-800,
+.dark .workspace-theme .text-emerald-800,
+.dark .workspace-theme .text-red-800,
+.dark .workspace-theme .text-rose-700 { color: var(--workspace-text) !important; }
+.dark .workspace-theme .border-dashed { border-color: var(--workspace-border) !important; }
