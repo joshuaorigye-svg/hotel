@@ -139,7 +139,7 @@ declare request_id uuid;
 begin
   if not public.is_hr_manager() then raise exception 'HR manager access required'; end if;
   if p_amount is null or p_amount <= 0 or p_repayment_per_month is null
-     or p_repayment_per_month <= 0 or length(trim(coalesce(p_reason,''))) < 5 then
+     or p_repayment_per_month <= 0 or p_repayment_per_month > p_amount or length(trim(coalesce(p_reason,''))) < 5 then
     raise exception 'Enter a valid amount, monthly repayment and reason';
   end if;
   if not exists(select 1 from public.profiles where id=p_staff_id and is_active=true and role in ('staff','manager')) then
@@ -271,7 +271,7 @@ declare
   run_id uuid;
   employee_count integer;
   payroll_item public.payroll_items%rowtype;
-  advance public.staff_advance_requests%rowtype;
+  advance_row public.staff_advance_requests%rowtype;
   deduction_request public.salary_deduction_requests%rowtype;
   repaid numeric(14,2);
   advance_total numeric(14,2);
@@ -311,7 +311,7 @@ begin
     advance_total := 0;
     other_total := 0;
 
-    for advance in
+    for advance_row in
       select * from public.staff_advance_requests
       where staff_id=payroll_item.staff_id and status='disbursed'
       order by disbursed_at, created_at
@@ -319,13 +319,13 @@ begin
     loop
       select coalesce(sum(amount),0), coalesce(bool_or(status='scheduled'),false)
       into repaid, has_scheduled
-      from public.staff_advance_repayments where advance_id=advance.id;
+      from public.staff_advance_repayments where advance_id=advance_row.id;
 
       -- Never schedule a second instalment while an earlier payroll deduction is unpaid.
       if not has_scheduled and repaid < advance.amount then
         insert into public.staff_advance_repayments(advance_id,payroll_item_id,amount)
-        values(advance.id,payroll_item.id,least(advance.repayment_per_month,advance.amount-repaid));
-        advance_total := advance_total + least(advance.repayment_per_month,advance.amount-repaid);
+        values(advance_row.id,payroll_item.id,least(advance_row.repayment_per_month,advance_row.amount-repaid));
+        advance_total := advance_total + least(advance_row.repayment_per_month,advance_row.amount-repaid);
       end if;
     end loop;
 
