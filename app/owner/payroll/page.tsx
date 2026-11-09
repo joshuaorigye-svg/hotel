@@ -5,11 +5,12 @@ export const dynamic = "force-dynamic";
 
 export default async function PayrollPage() {
   const db = await createClient();
-  const [staffResult, salaryResult, runsResult, itemsResult] = await Promise.all([
+  const [staffResult, salaryResult, runsResult, itemsResult, profilesResult] = await Promise.all([
     db.from("profiles").select("id,full_name,role").eq("is_active", true).in("role", ["staff", "manager"]).order("full_name"),
     db.from("staff_salary_settings").select("staff_id,base_salary,allowances,default_deductions,effective_from,is_active"),
     db.from("payroll_runs").select("id,period_start,period_end,status,total_gross,total_deductions,total_net").order("period_start", { ascending: false }),
     db.from("payroll_items").select("id,payroll_run_id,staff_id,base_salary,allowances,deductions,net_pay,payment_status,payment_method,payment_reference"),
+    db.from("profiles").select("id,full_name"),
   ]);
 
   const salaries = new Map((salaryResult.data || []).map((row: any) => [row.staff_id, row]));
@@ -17,7 +18,7 @@ export default async function PayrollPage() {
     ...person,
     salary: salaries.get(person.id) || null,
   }));
-  const names = new Map(staff.map((person: any) => [person.id, person.full_name]));
+  const names = new Map((profilesResult.data || []).map((person: any) => [person.id, person.full_name]));
   const itemsByRun = new Map<string, any[]>();
   for (const item of itemsResult.data || []) {
     const current = itemsByRun.get(item.payroll_run_id) || [];
@@ -28,7 +29,7 @@ export default async function PayrollPage() {
     ...run,
     items: itemsByRun.get(run.id) || [],
   }));
-  const migrationError = !!(salaryResult.error || runsResult.error || itemsResult.error);
+  const migrationError = !!(staffResult.error || salaryResult.error || runsResult.error || itemsResult.error || profilesResult.error);
 
   return (
     <div className="space-y-6">
