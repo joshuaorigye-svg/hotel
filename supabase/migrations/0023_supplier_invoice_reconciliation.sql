@@ -56,6 +56,8 @@ create index if not exists inventory_supplier_invoices_department_idx
   on public.inventory_supplier_invoices(department_id, created_at desc);
 create index if not exists inventory_supplier_invoice_lines_invoice_idx
   on public.inventory_supplier_invoice_lines(invoice_id);
+create unique index if not exists inventory_supplier_invoice_number_ci_unique
+  on public.inventory_supplier_invoices(supplier_id,lower(invoice_number));
 
 alter table public.inventory_supplier_invoices enable row level security;
 alter table public.inventory_supplier_invoice_lines enable row level security;
@@ -114,8 +116,10 @@ begin
   if p_invoice_date is null or (p_due_date is not null and p_due_date<p_invoice_date) then
     raise exception 'Check the invoice and due dates';
   end if;
-  if jsonb_typeof(p_lines)<>'array' or jsonb_array_length(p_lines)=0
-     or jsonb_array_length(p_lines)>100 then
+  if jsonb_typeof(p_lines) is distinct from 'array' then
+    raise exception 'Invoice lines must be an array';
+  end if;
+  if jsonb_array_length(p_lines)=0 or jsonb_array_length(p_lines)>100 then
     raise exception 'Add between one and 100 invoice lines';
   end if;
 
@@ -202,7 +206,7 @@ language plpgsql security definer set search_path=public as $$
 declare
   invoice public.inventory_supplier_invoices%rowtype;
   line record;
-  expense_id uuid;
+  v_expense_id uuid;
 begin
   if not public.is_owner() then raise exception 'Owner approval required'; end if;
   if p_decision not in ('approved','rejected') then raise exception 'Choose approve or reject'; end if;
@@ -249,17 +253,17 @@ begin
       'Supplier invoice linked to purchase order '||invoice.purchase_order_id::text,
       invoice.total_amount,invoice.department_id,auth.uid(),'approved',
       'supplies',null,invoice.invoice_number,auth.uid(),now(),'unpaid'
-    ) returning id into expense_id;
+    ) returning id into v_expense_id;
 
     update public.inventory_supplier_invoices
-    set status='approved',expense_id=expense_id,review_note=nullif(trim(coalesce(p_note,'')),''),
+    set status='approved',expense_id=v_expense_id,review_note=nullif(trim(coalesce(p_note,'')),''),
       reviewed_by=auth.uid(),reviewed_at=now(),updated_at=now()
     where id=invoice.id;
 
     insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
     values(auth.uid(),'Approved supplier invoice and created payable expense',
       'inventory_supplier_invoice',invoice.id,
-      jsonb_build_object('expense_id',expense_id,'amount',invoice.total_amount));
+      jsonb_build_object('expense_id',v_expense_id,'amount',invoice.total_amount));
   end if;
 end;
 $$;
