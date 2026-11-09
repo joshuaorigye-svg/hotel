@@ -156,6 +156,10 @@ begin
     raise exception 'Owner, HR or the employee department manager access required';
   end if;
 
+  -- Serialize approvals for the same employee so concurrent decisions cannot
+  -- approve overlapping leave requests under READ COMMITTED isolation.
+  perform 1 from public.profiles where id = target.staff_id for update;
+
   if p_decision = 'approve' and exists (
     select 1 from public.staff_leave l
     where l.staff_id = target.staff_id
