@@ -209,7 +209,7 @@ declare
   v_expense_id uuid;
 begin
   if not public.is_owner() then raise exception 'Owner approval required'; end if;
-  if p_decision not in ('approved','rejected') then raise exception 'Choose approve or reject'; end if;
+  if p_decision is null or p_decision not in ('approved','rejected') then raise exception 'Choose approve or reject'; end if;
   if p_decision='rejected' and char_length(trim(coalesce(p_note,'')))<3 then
     raise exception 'Add a reason when rejecting this invoice';
   end if;
@@ -280,7 +280,7 @@ declare
   invoice public.inventory_supplier_invoices%rowtype;
 begin
   if not public.is_owner() then raise exception 'Owner payment authority required'; end if;
-  if p_payment_method not in ('cash','mobile_money','card','bank_transfer','pesapal') then
+  if p_payment_method is null or p_payment_method not in ('cash','mobile_money','card','bank_transfer','pesapal') then
     raise exception 'Choose a valid payment method';
   end if;
   select * into invoice from public.inventory_supplier_invoices
