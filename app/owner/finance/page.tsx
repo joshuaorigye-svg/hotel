@@ -159,7 +159,7 @@ export default async function Finance() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="text-xs text-gray-500">
-                <tr className="border-b"><th className="py-3 pr-3">Cashier</th><th className="py-3 pr-3">Department</th><th className="py-3 pr-3">Opened</th><th className="py-3 pr-3">Cash sales</th><th className="py-3 pr-3">Expected cash</th><th className="py-3 pr-3">Variance</th><th className="py-3">Status</th></tr>
+                <tr className="border-b"><th className="py-3 pr-3">Cashier</th><th className="py-3 pr-3">Department</th><th className="py-3 pr-3">Opened</th><th className="py-3 pr-3">Cash sales</th><th className="py-3 pr-3">Cash expenses</th><th className="py-3 pr-3">Expected cash</th><th className="py-3 pr-3">Variance</th><th className="py-3">Status</th></tr>
               </thead>
               <tbody>
                 {sessions.map((session) => (
@@ -191,7 +191,7 @@ export default async function Finance() {
                   <td className="py-3 pr-3">{departmentNames.get(expense.department_id || "") || "Unassigned"}</td>
                   <td className="py-3 pr-3">{profileNames.get(expense.created_by || "") || "Unknown"}</td>
                   <td className="py-3 pr-3">{money(Number(expense.amount))}</td>
-                  <td className="py-3 capitalize">{expense.approval_status}</td>
+                  <td className="py-3 capitalize">{expense.approval_status}{expense.payment_status === "paid" ? " · paid" : expense.approval_status === "approved" ? " · unpaid" : ""}</td>
                 </tr>
               ))}
               {expenses.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-sm text-gray-400">No expenses recorded.</td></tr>}
