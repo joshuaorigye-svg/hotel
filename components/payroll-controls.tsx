@@ -21,6 +21,7 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
   const [notes, setNotes] = useState("");
   const [references, setReferences] = useState<Record<string, string>>({});
   const [methods, setMethods] = useState<Record<string, string>>({});
+  const [cancellationReasons, setCancellationReasons] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -76,6 +77,20 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
     setBusy("");
   }
 
+  async function cancelDraft(runId: string) {
+    const reason = (cancellationReasons[runId] || "").trim();
+    if (reason.length < 5) { feedback("Enter a cancellation reason of at least five characters.", true); return; }
+    if (!window.confirm("Cancel this draft payroll? Scheduled advance repayments and salary deductions will be released so the month can be prepared again.")) return;
+    setBusy(runId); feedback("");
+    const { error } = await db.rpc("cancel_draft_payroll_run", {
+      p_payroll_run_id: runId,
+      p_reason: reason,
+    });
+    if (error) feedback(error.message, true);
+    else { feedback("Draft cancelled. Reserved advance repayments and deductions have been released."); router.refresh(); }
+    setBusy("");
+  }
+
   return (
     <div className="space-y-6">
       {migrationError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Payroll tables are not available yet. Review and apply migrations 0013 and 0014 in Supabase before using this module.</div>}
@@ -103,7 +118,14 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
         {!runs.length ? <div className="rounded-2xl border border-[#EAE6DC] bg-white p-8 text-center text-sm text-gray-500">No payroll runs yet. Save salary settings, then prepare a month.</div> : runs.map((run) => (
           <article key={run.id} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-forest">{new Intl.DateTimeFormat("en-UG", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(run.period_start + "T00:00:00Z"))}</h3><p className="mt-1 text-xs text-gray-500">{run.items.length} staff · Gross {money(run.total_gross)} · Deductions {money(run.total_deductions)} · Net {money(run.total_net)}</p></div><span className="rounded-full bg-[#F7F5EF] px-3 py-1 text-xs capitalize text-forest">{run.status.replace("_", " ")}</span></div>
-            {run.status === "draft" && <button onClick={() => approveRun(run.id)} disabled={!!busy} className="mt-4 rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === run.id ? "Approving…" : "Approve payroll"}</button>}
+            {run.status === "draft" && <div className="mt-4 grid gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+              <label className="grid gap-1 text-xs font-medium text-gray-700">Cancellation reason
+                <input value={cancellationReasons[run.id] || ""} onChange={(e) => setCancellationReasons((old) => ({ ...old, [run.id]: e.target.value }))} minLength={5} maxLength={500} placeholder="e.g. Incorrect staff or salary figures" className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm" />
+              </label>
+              <button onClick={() => cancelDraft(run.id)} disabled={!!busy || (cancellationReasons[run.id] || "").trim().length < 5} className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{busy === run.id ? "Cancelling…" : "Cancel draft"}</button>
+              <button onClick={() => approveRun(run.id)} disabled={!!busy} className="rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === run.id ? "Working…" : "Approve payroll"}</button>
+            </div>}
+            {run.status === "cancelled" && <p className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Cancelled {run.cancellation_reason ? `· ${run.cancellation_reason}` : ""}. You can prepare this month again.</p>}
             <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-2 pr-3">Staff member</th><th className="py-2 pr-3">Base</th><th className="py-2 pr-3">Allowances</th><th className="py-2 pr-3">Deductions</th><th className="py-2 pr-3">Net pay</th><th className="py-2">Payment</th></tr></thead><tbody>{run.items.map((item) => <tr key={item.id} className="border-b border-gray-100 last:border-0"><td className="py-3 pr-3 font-medium">{item.staff?.full_name || "Staff member"}</td><td className="py-3 pr-3">{money(item.base_salary)}</td><td className="py-3 pr-3">{money(item.allowances)}</td><td className="py-3 pr-3">{money(item.deductions)}<p className="mt-1 text-[10px] text-gray-400">Advance {money(item.advance_deductions || 0)} · Other {money(item.other_deductions || 0)}</p></td><td className="py-3 pr-3 font-semibold">{money(item.net_pay)}</td><td className="py-3">{item.payment_status === "paid" ? <span className="text-emerald-700">Paid · {item.payment_reference}</span> : run.status !== "draft" ? <div className="flex min-w-52 gap-2"><select aria-label="Payment method" value={methods[item.id] || "mobile_money"} onChange={(e) => setMethods((old) => ({ ...old, [item.id]: e.target.value }))} className="w-28 rounded border px-2 py-1 text-xs"><option value="mobile_money">Mobile money</option><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option></select><input aria-label="Payment reference" value={references[item.id] || ""} onChange={(e) => setReferences((old) => ({ ...old, [item.id]: e.target.value }))} placeholder="Receipt ref" className="w-28 rounded border px-2 py-1 text-xs" /><button onClick={() => recordPayment(item.id)} disabled={!!busy} className="rounded bg-forest px-2 py-1 text-xs text-white disabled:opacity-50">{busy === item.id ? "…" : "Record"}</button></div> : <span className="text-gray-400">Awaiting approval</span>}</td></tr>)}</tbody></table></div>
           </article>
         ))}
