@@ -24,7 +24,7 @@ export function AdvanceDeductionControls({ advances, deductions, names, repaid, 
     if(decision==="reject"&&reason.length<5){setMessage("Enter a clear rejection reason before rejecting.");setIsError(true);setBusy("");return;}
     const fn=kind==="advance"?"review_staff_advance_request":"review_salary_deduction_request";
     const {error}=await db.rpc(fn,{p_request_id:id,p_decision:decision,p_rejection_reason:decision==="reject"?reason:null});
-    if(error){setMessage(error.message);setIsError(true);}else{setMessage(`${kind==="advance"?"Advance":"Deduction"} request ${decision}d.`);setIsError(false);router.refresh();}
+    if(error){setMessage(error.message);setIsError(true);}else{setMessage(`${kind==="advance"?"Advance":"Deduction"} request ${decision==="approve"?"approved":"rejected"}.`);setIsError(false);router.refresh();}
     setBusy("");
   }
   async function disburse(item:Advance){
