@@ -322,7 +322,7 @@ begin
       from public.staff_advance_repayments where advance_id=advance_row.id;
 
       -- Never schedule a second instalment while an earlier payroll deduction is unpaid.
-      if not has_scheduled and repaid < advance.amount then
+      if not has_scheduled and repaid < advance_row.amount then
         insert into public.staff_advance_repayments(advance_id,payroll_item_id,amount)
         values(advance_row.id,payroll_item.id,least(advance_row.repayment_per_month,advance_row.amount-repaid));
         advance_total := advance_total + least(advance_row.repayment_per_month,advance_row.amount-repaid);
