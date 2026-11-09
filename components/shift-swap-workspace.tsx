@@ -30,7 +30,7 @@ export function ShiftSwapWorkspace({ role, userId, shifts, requests, colleagues=
   const shiftSummary=(s:Shift|null)=>s? s.shift_name+" · "+fmt(s.starts_at):"Shift details unavailable";
   return <div className="space-y-6">
     {message&&<p role="status" className={`rounded-xl p-3 text-sm ${failed?"bg-red-50 text-red-700":"bg-emerald-50 text-emerald-800"}`}>{message}</p>}
-    {!isReview&&<section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+    {role!=="owner"&&<section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
       <h2 className="font-semibold text-forest">Request a shift exchange</h2>
       <p className="mt-1 text-sm text-gray-500">Choose one of your future shifts and a colleague's future shift in your department. They must accept before a manager can approve.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
