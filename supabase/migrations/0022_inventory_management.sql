@@ -2,6 +2,8 @@
 -- Extends the existing inventory_items / inventory_movements ledger. Apply after 0021.
 
 alter table public.inventory_items
+  alter column quantity type numeric(14,3) using quantity::numeric(14,3),
+  alter column low_stock_threshold type numeric(14,3) using low_stock_threshold::numeric(14,3),
   add column if not exists sku text,
   add column if not exists category text not null default 'general',
   add column if not exists unit_cost numeric(14,2) not null default 0,
@@ -13,6 +15,7 @@ create index if not exists inventory_department_category_idx
   on public.inventory_items(department_id,category,is_active);
 
 alter table public.inventory_movements
+  alter column quantity_delta type numeric(14,3) using quantity_delta::numeric(14,3),
   drop constraint if exists inventory_movements_movement_type_check;
 alter table public.inventory_movements
   add constraint inventory_movements_movement_type_check
