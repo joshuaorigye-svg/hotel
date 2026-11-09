@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ShiftRoster } from "@/components/shift-roster";
 
@@ -6,9 +7,9 @@ export const dynamic = "force-dynamic";
 export default async function OwnerSchedulePage() {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
   const { data: profile } = await db.from("profiles").select("role").eq("id",user.id).single();
-  if (profile?.role !== "owner") return null;
+  if (profile?.role !== "owner") redirect("/staff/tasks");
 
   const now = new Date();
   const horizon = new Date(now.getTime() + 30 * 86400000);
