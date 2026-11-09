@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { hotel } from "@/config/hotel";
 import { BrandMark } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
   ["/owner/dashboard", "Overview", LayoutDashboard],
@@ -26,7 +27,7 @@ export function OwnerShell({ children, ownerName }: { children: React.ReactNode;
   async function signOut() { await createClient().auth.signOut(); router.replace("/login"); router.refresh(); }
 
   return (
-    <div className="min-h-screen bg-cream md:flex">
+    <div className="workspace-theme min-h-screen bg-cream md:flex">
       {open && <button aria-label="Close menu" onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/40 md:hidden" />}
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-forest text-white transition-transform md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex min-h-20 items-center gap-3 border-b border-white/10 px-5">
@@ -44,7 +45,7 @@ export function OwnerShell({ children, ownerName }: { children: React.ReactNode;
       <main className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#E9E5DA] bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-3"><button aria-label="Open navigation" className="rounded-lg p-2 hover:bg-gray-100 md:hidden" onClick={() => setOpen(true)}><Menu /></button><div><p className="text-xs text-gray-400">{hotel.shortName} / Owner</p><p className="text-sm font-semibold text-forest">Management workspace</p></div></div>
-          <span className="hidden items-center gap-2 rounded-full bg-[#F4F1E8] px-3 py-2 text-xs text-gray-600 sm:flex"><i className="h-2 w-2 rounded-full bg-emerald-500" />Secure workspace</span>
+          <div className="flex items-center gap-2"><span className="hidden items-center gap-2 rounded-full bg-[#F4F1E8] px-3 py-2 text-xs text-gray-600 sm:flex"><i className="h-2 w-2 rounded-full bg-emerald-500" />Secure workspace</span><ThemeToggle compact /></div>
         </header>
         <div className="mx-auto max-w-[1440px] p-4 md:p-8">{children}</div>
       </main>
