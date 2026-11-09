@@ -149,3 +149,51 @@ revoke all on function public.submit_maintenance_incident(text,text,text,text,te
 revoke all on function public.update_maintenance_incident(uuid,text,uuid,numeric,numeric,text,text) from public;
 grant execute on function public.submit_maintenance_incident(text,text,text,text,text) to authenticated;
 grant execute on function public.update_maintenance_incident(uuid,text,uuid,numeric,numeric,text,text) to authenticated;
+
+
+-- Notify the affected team and reporter using the in-app notification centre.
+create or replace function public.notify_maintenance_incident_participants()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare reporter_name text;
+begin
+  select coalesce(full_name,'A colleague') into reporter_name
+  from public.profiles where id=new.reported_by;
+
+  if tg_op='INSERT' then
+    insert into public.user_notifications(user_id,title,message,href,entity_type,entity_id)
+    select p.id,'New maintenance incident',
+      reporter_name||' reported: '||new.title||' ('||new.priority||' priority).',
+      case when p.role='owner' then '/owner/incidents' else '/manager/incidents' end,
+      'maintenance_incident',new.id
+    from public.profiles p
+    where p.is_active=true and (
+      p.role='owner' or (p.role='manager' and p.department_id=new.department_id)
+    );
+    return new;
+  end if;
+
+  if old.status is distinct from new.status then
+    insert into public.user_notifications(user_id,title,message,href,entity_type,entity_id)
+    values(new.reported_by,'Maintenance incident updated',
+      'Your report "'||new.title||'" is now '||replace(new.status,'_',' ')||'.',
+      case when (select role from public.profiles where id=new.reported_by)='manager'
+        then '/manager/incidents' else '/staff/incidents' end,
+      'maintenance_incident',new.id);
+  end if;
+
+  if old.assigned_to is distinct from new.assigned_to and new.assigned_to is not null then
+    insert into public.user_notifications(user_id,title,message,href,entity_type,entity_id)
+    values(new.assigned_to,'Maintenance work assigned to you',
+      'You have been assigned: '||new.title||' at '||new.location||'.',
+      case when (select role from public.profiles where id=new.assigned_to)='manager'
+        then '/manager/incidents' else '/staff/incidents' end,
+      'maintenance_incident',new.id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists maintenance_incident_notifications on public.maintenance_incidents;
+create trigger maintenance_incident_notifications
+after insert or update of status,assigned_to on public.maintenance_incidents
+for each row execute function public.notify_maintenance_incident_participants();
