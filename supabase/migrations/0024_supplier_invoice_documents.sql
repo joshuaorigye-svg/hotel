@@ -140,7 +140,7 @@ for insert to authenticated with check(
   and split_part(name,'/',1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   and exists(
     select 1 from public.inventory_supplier_invoices i
-    where i.id=split_part(name,'/',1)::uuid
+    where i.id=case when split_part(name,'/',1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
       and (
         public.is_owner()
         or (public.current_user_role()='manager'
@@ -162,6 +162,45 @@ for delete to authenticated using(
   and exists(
     select 1 from public.inventory_supplier_invoices i
     where i.id=split_part(name,'/',1)::uuid
+      and (
+        public.is_owner()
+        or (public.current_user_role()='manager'
+          and i.department_id=public.current_user_department()
+          and i.status in ('pending','rejected'))
+      )
+  )
+);
+ then split_part(name,'/',1)::uuid end
+      and (
+        public.is_owner()
+        or (public.current_user_role()='manager'
+          and i.department_id=public.current_user_department()
+          and i.status in ('pending','rejected'))
+      )
+  )
+);
+
+drop policy if exists "supplier invoice evidence cleanup unregistered" on storage.objects;
+create policy "supplier invoice evidence cleanup unregistered" on storage.objects
+for delete to authenticated using(
+  bucket_id='supplier-invoice-documents'
+  and not exists(
+    select 1 from public.inventory_supplier_invoice_documents d
+    where d.storage_path=name
+  )
+  and split_part(name,'/',1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  and exists(
+    select 1 from public.inventory_supplier_invoices i
+    where i.id=case when split_part(name,'/',1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+      and (
+        public.is_owner()
+        or (public.current_user_role()='manager'
+          and i.department_id=public.current_user_department()
+          and i.status in ('pending','rejected'))
+      )
+  )
+);
+ then split_part(name,'/',1)::uuid end
       and (
         public.is_owner()
         or (public.current_user_role()='manager'
