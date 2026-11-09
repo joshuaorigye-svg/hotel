@@ -18,6 +18,7 @@ const links = [
   ["/owner/finance/daily", "Daily reconciliation", Receipt],
   ["/owner/finance/performance", "Financial performance", ChartNoAxesCombined],
   ["/owner/payroll", "Staff payroll", Banknote],
+  ["/owner/leave", "Leave oversight", CalendarDays],
   ["/owner/audit", "Activity log", ClipboardList],
   ["/owner/integrations", "Integrations", PlugZap],
 ] as const;
