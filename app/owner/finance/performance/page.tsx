@@ -148,7 +148,7 @@ export default async function FinancialPerformance({
         <div>
           <p className="text-sm font-medium text-gold">OWNER OFFICE</p>
           <h1 className="mt-1 text-2xl font-semibold text-forest md:text-3xl">Financial performance</h1>
-          <p className="mt-2 text-sm text-gray-500">Annual cash movement, settled expenses, refunds and current commitments.</p>
+          <p className="mt-2 text-sm text-gray-500">Annual cash movement, paid expenses, payroll, staff advances, refunds and current commitments.</p>
         </div>
         <ReportExport rows={exportRows} filename={"buladde-financial-performance-" + year + ".csv"} />
       </header>
