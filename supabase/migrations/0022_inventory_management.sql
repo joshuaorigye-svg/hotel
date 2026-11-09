@@ -273,7 +273,7 @@ begin
 end; $$;
 
 create or replace function public.create_inventory_stocktake(p_department_id uuid default null,p_notes text default null)
-returns uuid language plpgsql security definer set search_path=public as $
+returns uuid language plpgsql security definer set search_path=public as $$
 declare dept uuid; v_stocktake_id uuid;
 begin
  if public.current_user_role() not in('owner','manager') then raise exception 'Manager or owner access required'; end if;
@@ -339,7 +339,7 @@ end; $$;
 
 
 create or replace function public.issue_inventory_stock(p_inventory_item_id uuid,p_quantity numeric,p_purpose text)
-returns void language plpgsql security definer set search_path=public as $
+returns void language plpgsql security definer set search_path=public as $$
 declare it public.inventory_items%rowtype;
 begin
  if public.current_user_role() not in('owner','manager') then raise exception 'Manager or owner access required'; end if;
