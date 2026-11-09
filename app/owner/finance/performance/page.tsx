@@ -7,6 +7,7 @@ type Payment = { amount: number | string | null; created_at: string; status: str
 type Expense = { id: string; title: string; amount: number | string | null; category: string | null; department_id: string | null; paid_at: string | null };
 type Refund = { amount: number | string | null; processed_at: string | null };
 type PayrollPayment = { net_pay: number | string | null; paid_at: string | null };
+type AdvanceDisbursement = { amount: number | string | null; disbursed_at: string | null };
 type Department = { id: string; name: string };
 type Liability = { amount: number | string | null; department_id: string | null };
 
@@ -50,7 +51,7 @@ export default async function FinancialPerformance({
   const start = year + "-01-01T00:00:00+03:00";
   const end = (year + 1) + "-01-01T00:00:00+03:00";
 
-  const [paymentsResult, expensesResult, refundsResult, liabilitiesResult, departmentsResult, payrollResult] = await Promise.all([
+  const [paymentsResult, expensesResult, refundsResult, liabilitiesResult, departmentsResult, payrollResult, advancesResult] = await Promise.all([
     db.from("payments").select("amount,created_at,status")
       .in("status", ["completed", "refunded"]).gte("created_at", start).lt("created_at", end),
     db.from("expenses").select("id,title,amount,category,department_id,paid_at")
@@ -61,6 +62,7 @@ export default async function FinancialPerformance({
       .eq("approval_status", "approved").eq("payment_status", "unpaid"),
     db.from("departments").select("id,name").order("name"),
     db.from("payroll_items").select("net_pay,paid_at").eq("payment_status", "paid").gte("paid_at", start).lt("paid_at", end),
+    db.from("staff_advance_requests").select("amount,disbursed_at").eq("status", "disbursed").gte("disbursed_at", start).lt("disbursed_at", end),
   ]);
 
   const payments = (paymentsResult.data || []) as Payment[];
@@ -69,12 +71,14 @@ export default async function FinancialPerformance({
   const liabilities = (liabilitiesResult.data || []) as Liability[];
   const departments = (departmentsResult.data || []) as Department[];
   const payrollPayments = (payrollResult.data || []) as PayrollPayment[];
+  const advanceDisbursements = (advancesResult.data || []) as AdvanceDisbursement[];
   const departmentNames = new Map(departments.map((department) => [department.id, department.name]));
 
   const grossCollections = payments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidExpenses = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidPayroll = payrollPayments.reduce((sum, row) => sum + Number(row.net_pay || 0), 0);
-  const totalPaidOutflows = paidExpenses + paidPayroll;
+  const totalPaidAdvances = advanceDisbursements.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const totalPaidOutflows = paidExpenses + paidPayroll + totalPaidAdvances;
   const processedRefunds = refunds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const netMovement = grossCollections - totalPaidOutflows - processedRefunds;
   const outstandingLiabilities = liabilities.reduce((sum, row) => sum + Number(row.amount || 0), 0);
@@ -87,9 +91,11 @@ export default async function FinancialPerformance({
       .reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const payrollTotal = payrollPayments.filter((row) => row.paid_at && monthKey(row.paid_at) === key)
       .reduce((sum, row) => sum + Number(row.net_pay || 0), 0);
+    const advanceTotal = advanceDisbursements.filter((row) => row.disbursed_at && monthKey(row.disbursed_at) === key)
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const refundTotal = refunds.filter((row) => row.processed_at && monthKey(row.processed_at) === key)
       .reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    return { month: key, collections, expenses: expenseTotal, payroll: payrollTotal, refunds: refundTotal, net: collections - expenseTotal - payrollTotal - refundTotal };
+    return { month: key, collections, expenses: expenseTotal, payroll: payrollTotal, advances: advanceTotal, refunds: refundTotal, net: collections - expenseTotal - payrollTotal - advanceTotal - refundTotal };
   });
 
   const departmentTotals = new Map<string, number>();
@@ -115,13 +121,14 @@ export default async function FinancialPerformance({
     liabilitiesResult.error && "approved unpaid expenses",
     departmentsResult.error && "departments",
     payrollResult.error && "payroll payments (apply migration 0013)",
+    advancesResult.error && "advance disbursements (apply migration 0014)",
   ].filter(Boolean);
   const exportRows = [
     ["Buladde Palm Villa Hotel", "Annual financial performance", year],
     ["Currency", "UGX"],
     [],
-    ["Month", "Collections", "Paid operating expenses", "Paid payroll", "Processed refunds", "Net recorded movement"],
-    ...monthly.map((row) => [row.month, String(row.collections), String(row.expenses), String(row.payroll), String(row.refunds), String(row.net)]),
+    ["Month", "Collections", "Paid operating expenses", "Paid payroll", "Advance disbursements", "Processed refunds", "Net recorded movement"],
+    ...monthly.map((row) => [row.month, String(row.collections), String(row.expenses), String(row.payroll), String(row.advances), String(row.refunds), String(row.net)]),
     [],
     ["Paid expenses by department", "Amount (UGX)"],
     ...Array.from(departmentTotals.entries()).sort((a, b) => b[1] - a[1]).map(([name, amount]) => [name, String(amount)]),
@@ -130,9 +137,10 @@ export default async function FinancialPerformance({
     ...Array.from(categoryTotals.entries()).sort((a, b) => b[1] - a[1]).map(([name, amount]) => [name, String(amount)]),
     [],
     ["Paid payroll total", String(paidPayroll)],
+    ["Staff advance disbursements", String(totalPaidAdvances)],
     ["Current approved unpaid expenses", String(outstandingLiabilities)],
   ];
-  const maxBar = Math.max(1, ...monthly.flatMap((row) => [row.collections, row.expenses + row.payroll + row.refunds]));
+  const maxBar = Math.max(1, ...monthly.flatMap((row) => [row.collections, row.expenses + row.payroll + row.advances + row.refunds]));
 
   return (
     <div className="space-y-7">
@@ -167,9 +175,9 @@ export default async function FinancialPerformance({
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Recorded collections", grossCollections, "Payments received in the selected year"],
-          ["Paid expenses incl. payroll", totalPaidOutflows, "Operating expenses and salaries actually paid in the selected year"],
+          ["Paid outflows incl. payroll & advances", totalPaidOutflows, "Operating expenses, salaries and staff advances actually disbursed in the selected year"],
           ["Processed refunds", processedRefunds, "Refunds recorded as completed in the selected year"],
-          ["Net recorded movement", netMovement, "Collections less paid expenses and processed refunds"],
+          ["Net recorded movement", netMovement, "Collections less paid expenses, payroll, advances and processed refunds"],
         ].map(([label, amount, detail]) => (
           <article key={String(label)} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <p className="text-sm text-gray-500">{label}</p>
@@ -190,10 +198,10 @@ export default async function FinancialPerformance({
               </div>
               <div className="flex h-28 items-end gap-1 rounded-lg bg-[#F7F5EF] px-2 pt-2">
                 <div title={"Collections " + money(row.collections)} className="min-w-1 flex-1 rounded-t bg-emerald-600" style={{ height: Math.max(row.collections ? 3 : 0, (row.collections / maxBar) * 100) + "%" }} />
-                <div title={"Expenses and refunds " + money(row.expenses + row.payroll + row.refunds)} className="min-w-1 flex-1 rounded-t bg-amber-500" style={{ height: Math.max(row.expenses + row.payroll + row.refunds ? 3 : 0, ((row.expenses + row.payroll + row.refunds) / maxBar) * 100) + "%" }} />
+                <div title={"Expenses, payroll, advances and refunds " + money(row.expenses + row.payroll + row.refunds)} className="min-w-1 flex-1 rounded-t bg-amber-500" style={{ height: Math.max(row.expenses + row.payroll + row.refunds ? 3 : 0, ((row.expenses + row.payroll + row.refunds) / maxBar) * 100) + "%" }} />
               </div>
               <p className="mt-1 truncate text-[10px] text-gray-400">Paid operating expenses: {money(row.expenses)}</p>
-              <p className="truncate text-[10px] text-gray-400">Paid payroll: {money(row.payroll)}</p>
+              <p className="truncate text-[10px] text-gray-400">Paid payroll: {money(row.payroll)}</p>\n              <p className="truncate text-[10px] text-gray-400">Staff advances: {money(row.advances)}</p>
               <p className="truncate text-[10px] text-gray-400">Refunds: {money(row.refunds)}</p>
             </div>
           ))}
@@ -204,7 +212,7 @@ export default async function FinancialPerformance({
         <h2 className="font-semibold text-forest">Monthly figures</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[680px] text-left text-sm">
-            <thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-3 pr-3">Month</th><th className="py-3 pr-3">Collections</th><th className="py-3 pr-3">Operating expenses</th><th className="py-3 pr-3">Payroll</th><th className="py-3 pr-3">Refunds</th><th className="py-3">Net movement</th></tr></thead>
+            <thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-3 pr-3">Month</th><th className="py-3 pr-3">Collections</th><th className="py-3 pr-3">Operating expenses</th><th className="py-3 pr-3">Payroll</th><th className="py-3 pr-3">Advances</th><th className="py-3 pr-3">Refunds</th><th className="py-3">Net movement</th></tr></thead>
             <tbody>
               {monthly.map((row) => (
                 <tr key={row.month} className="border-b border-gray-100 last:border-0">
@@ -257,7 +265,7 @@ export default async function FinancialPerformance({
       </section>
 
       <p className="text-xs text-gray-400">
-        This is a cash-movement management report, not an audited profit-and-loss statement. It uses payment and settlement dates, excludes unpaid expense commitments from cash outflows, and does not yet include inventory cost of goods sold, unpaid payroll accruals, depreciation, taxes or other journal adjustments. Paid payroll is included as a cash outflow only after its payment is recorded. Restaurant order totals are not added separately because their receipts are already represented in the payments table.
+        This is a cash-movement management report, not an audited profit-and-loss statement. It uses payment and settlement dates, excludes unpaid expense commitments from cash outflows, and does not yet include inventory cost of goods sold, unpaid payroll accruals, depreciation, taxes or other journal adjustments. Paid payroll is included only after payment is recorded; staff advances are included on their actual disbursement date. Restaurant order totals are not added separately because their receipts are already represented in the payments table.
       </p>
     </div>
   );
