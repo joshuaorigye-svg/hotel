@@ -266,10 +266,10 @@ export function FinanceControls({
       {reconciliation && (
         <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
           <h2 className="font-semibold text-forest">Latest shift reconciliation</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div><p className="text-xs text-gray-500">Opening float</p><b>{money(reconciliation.opening_float)}</b></div>
             <div><p className="text-xs text-gray-500">Cash sales</p><b>{money(reconciliation.cash_sales)}</b></div>
-            <div><p className="text-xs text-gray-500">Non-cash sales</p><b>{money(reconciliation.non_cash_sales)}</b></div>
+            <div><p className="text-xs text-gray-500">Non-cash sales</p><b>{money(reconciliation.non_cash_sales)}</b></div>\n            <div><p className="text-xs text-gray-500">Cash expenses</p><b>{money(reconciliation.cash_expenses)}</b></div>
             <div><p className="text-xs text-gray-500">Expected cash</p><b>{money(reconciliation.expected_cash)}</b></div>
             <div><p className="text-xs text-gray-500">Variance</p><b className={reconciliation.variance === 0 ? "text-emerald-700" : "text-rose-700"}>{money(reconciliation.variance)}</b></div>
           </div>
