@@ -28,10 +28,12 @@ export function FinanceControls({
   pendingExpenses,
   departments,
   openSession,
+  cashierOnly = false,
 }: {
   pendingExpenses: Expense[];
   departments: Department[];
   openSession: Session | null;
+  cashierOnly?: boolean;
 }) {
   const db = createClient();
   const router = useRouter();
@@ -176,8 +178,8 @@ export function FinanceControls({
         </p>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+      <div className={cashierOnly ? "grid gap-5" : "grid gap-5 xl:grid-cols-2"}>
+        {!cashierOnly && <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
           <h2 className="font-semibold text-forest">Record an expense request</h2>
           <p className="mt-1 text-xs text-gray-500">New requests remain pending until reviewed by the owner.</p>
           <form onSubmit={submitExpense} className="mt-4 space-y-3">
@@ -210,7 +212,7 @@ export function FinanceControls({
               {busy === "expense" ? "Submitting…" : "Submit for approval"}
             </button>
           </form>
-        </section>
+        </section>}
 
         <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
           <h2 className="font-semibold text-forest">Cashier shift control</h2>
@@ -254,7 +256,7 @@ export function FinanceControls({
         </section>
       )}
 
-      <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+      {!cashierOnly && <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-forest">Expense approvals</h2>
@@ -285,7 +287,7 @@ export function FinanceControls({
             ))}
           </div>
         )}
-      </section>
+      </section>}
     </div>
   );
 }
