@@ -117,7 +117,7 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
 
   return (
     <div className="space-y-6">
-      {migrationError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Payroll tables are not available yet. Review and apply migrations 0013 and 0014 in Supabase before using this module.</div>}
+      {migrationError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Payroll tables are not available yet. Review and apply migrations 0013, 0014, 0015 and 0016 in Supabase before using this module.</div>}
       {message && <div role="status" className={`rounded-xl border p-3 text-sm ${isError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{message}</div>}
 
       <section className="grid gap-5 xl:grid-cols-2">
