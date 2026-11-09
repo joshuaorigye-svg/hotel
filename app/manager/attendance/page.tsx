@@ -5,7 +5,7 @@ import { AttendanceRegister } from "@/components/attendance-register";
 export const dynamic = "force-dynamic";
 
 function validDate(value: string | undefined, today: string) {
-  if (!value || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return today;
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return today;
   const parsed = new Date(value + "T00:00:00Z");
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0,10) !== value ? today : value;
 }
