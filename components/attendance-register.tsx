@@ -43,14 +43,16 @@ export function AttendanceRegister({ rows, selectedDate, scope, scheduledShifts 
   const completed = rows.filter((row) => !!row.clock_out);
   const totalMinutes = completed.reduce((sum, row) => sum + Math.max(0, (new Date(row.clock_out!).getTime() - new Date(row.clock_in).getTime()) / 60000), 0);
 
+  const usedAttendanceIds = new Set<string>();
   const comparisons = scheduledShifts.map(shift => {
     const start = new Date(shift.starts_at).getTime();
     const end = new Date(shift.ends_at).getTime();
-    const candidates = rows.filter(row => row.staff_id === shift.staff_id).filter(row => {
+    const candidates = rows.filter(row => row.staff_id === shift.staff_id && !usedAttendanceIds.has(row.id)).filter(row => {
       const actual = new Date(row.clock_in).getTime();
       return actual >= start - 4 * 60 * 60 * 1000 && actual <= end + 4 * 60 * 60 * 1000;
     }).sort((a,b) => Math.abs(new Date(a.clock_in).getTime()-start)-Math.abs(new Date(b.clock_in).getTime()-start));
     const matched = candidates[0] || null;
+    if (matched) usedAttendanceIds.add(matched.id);
     return { shift, matched, offset: matched ? Math.round((new Date(matched.clock_in).getTime()-start)/60000) : null };
   });
   const matchedIds = new Set(comparisons.flatMap(item => item.matched ? [item.matched.id] : []));
