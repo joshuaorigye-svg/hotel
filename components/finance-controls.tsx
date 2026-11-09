@@ -277,60 +277,73 @@ export function FinanceControls({
         </section>
       )}
 
-      {!cashierOnly && <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      {!cashierOnly && (
+        <>
+          <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <h2 className="font-semibold text-forest">Approved expenses awaiting payment</h2>
             <p className="mt-1 text-xs text-gray-500">Approval does not mean money has been paid. Record the actual payment method when the expense is settled.</p>
-            {!payableExpenses.length ? <p className="py-6 text-center text-sm text-gray-400">No approved expenses are awaiting payment.</p> : (
+            {!payableExpenses.length ? (
+              <p className="py-6 text-center text-sm text-gray-400">No approved expenses are awaiting payment.</p>
+            ) : (
               <div className="mt-3 space-y-3">
                 {payableExpenses.map((expense) => (
                   <div key={expense.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
-                    <div><p className="font-medium text-forest">{expense.title}</p><p className="text-xs text-gray-500">{money(expense.amount)} · {expense.category.replaceAll("_", " ")}</p></div>
+                    <div>
+                      <p className="font-medium text-forest">{expense.title}</p>
+                      <p className="text-xs text-gray-500">{money(expense.amount)} · {expense.category.replaceAll("_", " ")}</p>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <select value={expensePaymentMethods[expense.id] || "cash"} onChange={(event) => setExpensePaymentMethods((current) => ({ ...current, [expense.id]: event.target.value }))} className="rounded-lg border border-gray-200 p-2 text-sm">
-                        <option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="pesapal">Pesapal</option>
+                        <option value="cash">Cash</option>
+                        <option value="mobile_money">Mobile money</option>
+                        <option value="bank_transfer">Bank transfer</option>
+                        <option value="card">Card</option>
+                        <option value="pesapal">Pesapal</option>
                       </select>
-                      <button type="button" disabled={!!busy} onClick={() => markExpensePaid(expense.id)} className="rounded-lg bg-forest px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === "pay-expense-" + expense.id ? "Saving…" : "Mark paid"}</button>
+                      <button type="button" disabled={!!busy} onClick={() => markExpensePaid(expense.id)} className="rounded-lg bg-forest px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                        {busy === "pay-expense-" + expense.id ? "Saving…" : "Mark paid"}
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </section>
-        <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-            <h2 className="font-semibold text-forest">Expense approvals</h2>
-            <p className="mt-1 text-xs text-gray-500">Only the owner can approve or reject a pending request.</p>
-          </div>
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">{pendingExpenses.length} pending</span>
-        </div>
-        {!pendingExpenses.length ? (
-          <p className="py-8 text-center text-sm text-gray-400">No expense requests are waiting for approval.</p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {pendingExpenses.map((expense) => (
-              <article key={expense.id} className="rounded-xl border border-gray-100 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-forest">{expense.title}</p>
-                    {expense.description && <p className="mt-1 text-sm text-gray-500">{expense.description}</p>}
-                    <p className="mt-1 text-xs text-gray-400">{expense.category.replaceAll("_", " ")} · {new Date(expense.created_at).toLocaleDateString("en-UG")}</p>
-                  </div>
-                  <b className="whitespace-nowrap">{money(expense.amount)}</b>
-                </div>
-                <input value={rejectionReasons[expense.id] || ""} onChange={(event) => setRejectionReasons((current) => ({ ...current, [expense.id]: event.target.value }))} placeholder="Reason required only if rejecting" maxLength={500} className="mt-3 w-full rounded-lg border border-gray-200 p-2.5 text-sm" />
-                <div className="mt-3 flex flex-wrap justify-end gap-2">
-                  <button type="button" disabled={!!busy} onClick={() => reviewExpense(expense.id, "rejected")} className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 disabled:opacity-50">Reject</button>
-                  <button type="button" disabled={!!busy} onClick={() => reviewExpense(expense.id, "approved")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === expense.id ? "Saving…" : "Approve"}</button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>}
+          </section>
+
+          <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-forest">Expense approvals</h2>
+                <p className="mt-1 text-xs text-gray-500">Only the owner can approve or reject a pending request.</p>
+              </div>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">{pendingExpenses.length} pending</span>
+            </div>
+            {!pendingExpenses.length ? (
+              <p className="py-8 text-center text-sm text-gray-400">No expense requests are waiting for approval.</p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {pendingExpenses.map((expense) => (
+                  <article key={expense.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-forest">{expense.title}</p>
+                        {expense.description && <p className="mt-1 text-sm text-gray-500">{expense.description}</p>}
+                        <p className="mt-1 text-xs text-gray-400">{expense.category.replaceAll("_", " ")} · {new Date(expense.created_at).toLocaleDateString("en-UG")}</p>
+                      </div>
+                      <b className="whitespace-nowrap">{money(expense.amount)}</b>
+                    </div>
+                    <input value={rejectionReasons[expense.id] || ""} onChange={(event) => setRejectionReasons((current) => ({ ...current, [expense.id]: event.target.value }))} placeholder="Reason required only if rejecting" maxLength={500} className="mt-3 w-full rounded-lg border border-gray-200 p-2.5 text-sm" />
+                    <div className="mt-3 flex flex-wrap justify-end gap-2">
+                      <button type="button" disabled={!!busy} onClick={() => reviewExpense(expense.id, "rejected")} className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 disabled:opacity-50">Reject</button>
+                      <button type="button" disabled={!!busy} onClick={() => reviewExpense(expense.id, "approved")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === expense.id ? "Saving…" : "Approve"}</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }
