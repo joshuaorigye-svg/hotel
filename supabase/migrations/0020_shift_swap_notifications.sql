@@ -97,7 +97,7 @@ begin
         case when (select role from public.profiles where id=p.id)='manager' then '/manager/swaps' else '/staff/swaps' end,
         'staff_shift_swap_request',new.id
       from public.profiles p where p.id in (new.requester_id,new.target_id);
-    elsif new.status='cancelled' and old.status='pending_target' then
+    elsif new.status='cancelled' and old.status in ('pending_target','pending_manager') then
       insert into public.user_notifications(user_id,title,message,href,entity_type,entity_id)
       values(new.target_id,'Shift exchange cancelled',
         requester_name||' cancelled the shift exchange request.',
