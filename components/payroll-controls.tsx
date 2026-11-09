@@ -27,6 +27,28 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
   const [isError, setIsError] = useState(false);
 
   const selectedStaff = useMemo(() => staff.find((person) => person.id === staffId), [staff, staffId]);
+  const reviewByRun = useMemo(() => {
+    const result: Record<string, { errors: string[]; gross: number; deductions: number; net: number }> = {};
+    for (const run of runs) {
+      const errors: string[] = [];
+      let gross = 0, totalDeductions = 0, net = 0;
+      if (!run.items.length) errors.push("This payroll has no employee entries.");
+      for (const item of run.items) {
+        const base = Number(item.base_salary), extra = Number(item.allowances);
+        const deduction = Number(item.deductions), takeHome = Number(item.net_pay);
+        const advance = Number(item.advance_deductions || 0), other = Number(item.other_deductions || 0);
+        if (![base, extra, deduction, takeHome, advance, other].every(Number.isFinite)) { errors.push("At least one employee has a missing or invalid amount."); continue; }
+        if (base <= 0 || extra < 0 || deduction < 0 || takeHome < 0 || advance < 0 || other < 0) errors.push("At least one employee has a negative amount or zero base salary.");
+        if (base + extra + 0.01 < deduction || Math.abs(base + extra - deduction - takeHome) > 0.01) errors.push("At least one employee gross, deductions and net pay do not balance.");
+        if (advance + other - deduction > 0.01) errors.push("Advance and other deductions exceed total deductions for an employee.");
+        if (run.status === "draft" && item.payment_status !== "pending") errors.push("A draft contains a salary already marked as paid.");
+        gross += base + extra; totalDeductions += deduction; net += takeHome;
+      }
+      if (Math.abs(gross - Number(run.total_gross)) > 0.01 || Math.abs(totalDeductions - Number(run.total_deductions)) > 0.01 || Math.abs(net - Number(run.total_net)) > 0.01) errors.push("Payroll summary totals do not match employee entries.");
+      result[run.id] = { errors: [...new Set(errors)], gross, deductions: totalDeductions, net };
+    }
+    return result;
+  }, [runs]);
   const feedback = (text: string, error = false) => { setMessage(text); setIsError(error); };
 
   async function saveSalary(event: React.FormEvent<HTMLFormElement>) {
@@ -57,6 +79,8 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
   }
 
   async function approveRun(runId: string) {
+    const review = reviewByRun[runId];
+    if (review?.errors.length) { feedback("Payroll cannot be approved until review issues are corrected.", true); return; }
     setBusy(runId); feedback("");
     const { error } = await db.rpc("approve_payroll_run", { p_payroll_run_id: runId });
     if (error) feedback(error.message, true);
@@ -118,12 +142,19 @@ export function PayrollControls({ staff, runs, migrationError = false }: { staff
         {!runs.length ? <div className="rounded-2xl border border-[#EAE6DC] bg-white p-8 text-center text-sm text-gray-500">No payroll runs yet. Save salary settings, then prepare a month.</div> : runs.map((run) => (
           <article key={run.id} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-forest">{new Intl.DateTimeFormat("en-UG", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(run.period_start + "T00:00:00Z"))}</h3><p className="mt-1 text-xs text-gray-500">{run.items.length} staff · Gross {money(run.total_gross)} · Deductions {money(run.total_deductions)} · Net {money(run.total_net)}</p></div><span className="rounded-full bg-[#F7F5EF] px-3 py-1 text-xs capitalize text-forest">{run.status.replace("_", " ")}</span></div>
+            {run.status === "draft" && <div className="mt-4 rounded-xl border border-gray-200 p-4">
+              <div className={reviewByRun[run.id]?.errors.length ? "rounded-lg bg-red-50 p-3 text-red-800" : "rounded-lg bg-emerald-50 p-3 text-emerald-800"}>
+                <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{reviewByRun[run.id]?.errors.length ? "Review needs attention" : "Payroll figures balanced"}</p><span className="text-xs">{reviewByRun[run.id]?.errors.length || 0} issue(s)</span></div>
+                {reviewByRun[run.id]?.errors.length ? <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">{reviewByRun[run.id].errors.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : <p className="mt-1 text-xs">All {run.items.length} employee entries balance, deduction breakdowns are consistent, and run totals match.</p>}
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3"><p>Gross checked: <strong>{money(reviewByRun[run.id]?.gross || 0)}</strong></p><p>Deductions checked: <strong>{money(reviewByRun[run.id]?.deductions || 0)}</strong></p><p>Net checked: <strong>{money(reviewByRun[run.id]?.net || 0)}</strong></p></div>
+              </div>
+            </div>}
             {run.status === "draft" && <div className="mt-4 grid gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
               <label className="grid gap-1 text-xs font-medium text-gray-700">Cancellation reason
                 <input value={cancellationReasons[run.id] || ""} onChange={(e) => setCancellationReasons((old) => ({ ...old, [run.id]: e.target.value }))} minLength={5} maxLength={500} placeholder="e.g. Incorrect staff or salary figures" className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm" />
               </label>
               <button onClick={() => cancelDraft(run.id)} disabled={!!busy || (cancellationReasons[run.id] || "").trim().length < 5} className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{busy === run.id ? "Cancelling…" : "Cancel draft"}</button>
-              <button onClick={() => approveRun(run.id)} disabled={!!busy} className="rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === run.id ? "Working…" : "Approve payroll"}</button>
+              <button onClick={() => approveRun(run.id)} disabled={!!busy || !!reviewByRun[run.id]?.errors.length} title={reviewByRun[run.id]?.errors.length ? "Resolve payroll review issues before approval" : "Approve reviewed payroll"} className="rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === run.id ? "Working…" : "Approve payroll"}</button>
             </div>}
             {run.status === "cancelled" && <p className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Cancelled {run.cancellation_reason ? `· ${run.cancellation_reason}` : ""}. You can prepare this month again.</p>}
             <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-xs text-gray-500"><tr className="border-b"><th className="py-2 pr-3">Staff member</th><th className="py-2 pr-3">Base</th><th className="py-2 pr-3">Allowances</th><th className="py-2 pr-3">Deductions</th><th className="py-2 pr-3">Net pay</th><th className="py-2">Payment</th></tr></thead><tbody>{run.items.map((item) => <tr key={item.id} className="border-b border-gray-100 last:border-0"><td className="py-3 pr-3 font-medium">{item.staff?.full_name || "Staff member"}</td><td className="py-3 pr-3">{money(item.base_salary)}</td><td className="py-3 pr-3">{money(item.allowances)}</td><td className="py-3 pr-3">{money(item.deductions)}<p className="mt-1 text-[10px] text-gray-400">Advance {money(item.advance_deductions || 0)} · Other {money(item.other_deductions || 0)}</p></td><td className="py-3 pr-3 font-semibold">{money(item.net_pay)}</td><td className="py-3">{item.payment_status === "paid" ? <span className="text-emerald-700">Paid · {item.payment_reference}</span> : run.status !== "draft" ? <div className="flex min-w-52 gap-2"><select aria-label="Payment method" value={methods[item.id] || "mobile_money"} onChange={(e) => setMethods((old) => ({ ...old, [item.id]: e.target.value }))} className="w-28 rounded border px-2 py-1 text-xs"><option value="mobile_money">Mobile money</option><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option></select><input aria-label="Payment reference" value={references[item.id] || ""} onChange={(e) => setReferences((old) => ({ ...old, [item.id]: e.target.value }))} placeholder="Receipt ref" className="w-28 rounded border px-2 py-1 text-xs" /><button onClick={() => recordPayment(item.id)} disabled={!!busy} className="rounded bg-forest px-2 py-1 text-xs text-white disabled:opacity-50">{busy === item.id ? "…" : "Record"}</button></div> : <span className="text-gray-400">Awaiting approval</span>}</td></tr>)}</tbody></table></div>
