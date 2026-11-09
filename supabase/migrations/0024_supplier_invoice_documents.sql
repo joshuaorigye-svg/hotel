@@ -154,6 +154,7 @@ drop policy if exists "supplier invoice evidence cleanup unregistered" on storag
 create policy "supplier invoice evidence cleanup unregistered" on storage.objects
 for delete to authenticated using(
   bucket_id='supplier-invoice-documents'
+  and owner_id=auth.uid()::text
   and not exists(
     select 1 from public.inventory_supplier_invoice_documents d
     where d.storage_path=name
