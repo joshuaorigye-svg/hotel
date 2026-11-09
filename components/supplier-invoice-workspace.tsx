@@ -36,7 +36,8 @@ export function SupplierInvoiceWorkspace({role,purchaseOrders,invoices}:{role:"o
  const pending=invoices.filter(i=>i.status==="pending");
  const approved=invoices.filter(i=>i.status==="approved");
  const totalPending=pending.reduce((s,i)=>s+Number(i.total_amount),0);
- const totalApproved=approved.reduce((s,i)=>s+Number(i.total_amount),0);\n const priceVarianceCount=pending.filter(invoice=>invoice.inventory_supplier_invoice_lines.some(line=>{const poLine=Array.isArray(line.inventory_purchase_order_items)?line.inventory_purchase_order_items[0]:line.inventory_purchase_order_items;const base=Number(poLine?.unit_cost||0);return base>0&&Math.abs((Number(line.unit_price)-base)/base)>0.05;})).length;
+ const totalApproved=approved.reduce((s,i)=>s+Number(i.total_amount),0);
+ const priceVarianceCount=pending.filter(invoice=>invoice.inventory_supplier_invoice_lines.some(line=>{const poLine=Array.isArray(line.inventory_purchase_order_items)?line.inventory_purchase_order_items[0]:line.inventory_purchase_order_items;const base=Number(poLine?.unit_cost||0);return base>0&&Math.abs((Number(line.unit_price)-base)/base)>0.05;})).length;
 
  async function submitInvoice(e:React.FormEvent<HTMLFormElement>){
   e.preventDefault();setBusy("submit");setError("");setMessage("");
