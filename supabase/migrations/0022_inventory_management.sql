@@ -247,7 +247,7 @@ begin
  if p_decision='rejected' then
    update public.inventory_transfers set status='rejected',decision_note=nullif(trim(p_note),''),reviewed_by=auth.uid(),reviewed_at=now() where id=t.id;
  else
-   select * into dst from public.inventory_items where department_id=t.destination_department_id and lower(name)=lower(src.name) and lower(unit)=lower(src.unit) and is_active for update limit 1;
+   select * into dst from public.inventory_items where department_id=t.destination_department_id and lower(name)=lower(src.name) and lower(unit)=lower(src.unit) and is_active limit 1 for update;
    if not found then
      insert into public.inventory_items(name,department_id,quantity,unit,low_stock_threshold,is_active,sku,category,unit_cost)
      values(src.name,t.destination_department_id,0,src.unit,src.low_stock_threshold,true,null,src.category,src.unit_cost)
