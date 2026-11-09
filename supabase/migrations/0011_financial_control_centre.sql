@@ -208,3 +208,10 @@ grant execute on function public.close_cashier_session(numeric,text) to authenti
 
 -- Session opening/closing is only possible through the RPCs above. The
 -- owner can inspect all shifts; managers can inspect their own shifts only.
+
+
+-- Keep cashier shift opening and closing visible in the existing owner audit log.
+drop trigger if exists audit_cashier_sessions on public.cashier_sessions;
+create trigger audit_cashier_sessions
+after insert or update or delete on public.cashier_sessions
+for each row execute function public.write_audit_event();
