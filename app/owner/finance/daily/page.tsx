@@ -163,7 +163,8 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
             <div className="flex justify-between py-3"><span>Unclassified payment method</span><b>{money(unclassifiedCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Processed refunds</span><b className="text-rose-700">−{money(processedRefunds)}</b></div>
             <div className="flex justify-between py-3"><span>Paid operating expenses</span><b className="text-rose-700">−{money(paidExpenses)}</b></div>
-            <div className="flex justify-between py-3"><span>Paid payroll</span><b className="text-rose-700">−{money(paidPayroll)}</b></div>\n            <div className="flex justify-between py-3"><span>Staff advance disbursements</span><b className="text-rose-700">−{money(totalPaidAdvances)}</b></div>
+            <div className="flex justify-between py-3"><span>Paid payroll</span><b className="text-rose-700">−{money(paidPayroll)}</b></div>
+            <div className="flex justify-between py-3"><span>Staff advance disbursements</span><b className="text-rose-700">−{money(totalPaidAdvances)}</b></div>
             <div className="flex justify-between py-3 font-semibold"><span>Net recorded movement</span><b>{money(netMovement)}</b></div>
           </div>
         </article>
