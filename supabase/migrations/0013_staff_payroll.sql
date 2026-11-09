@@ -74,15 +74,20 @@ drop policy if exists "owner reads payroll items" on public.payroll_items;
 create policy "owner reads payroll items" on public.payroll_items
   for select to authenticated using (public.is_owner());
 
+create or replace function public.staff_can_read_payroll_item(p_run_id uuid, p_staff_id uuid)
+returns boolean
+language sql stable security definer set search_path = public as $
+  select p_staff_id = auth.uid() and exists (
+    select 1 from public.payroll_runs r
+    where r.id = p_run_id and r.status in ('approved','partially_paid','paid')
+  );
+$;
+revoke all on function public.staff_can_read_payroll_item(uuid,uuid) from public;
+grant execute on function public.staff_can_read_payroll_item(uuid,uuid) to authenticated;
+
 drop policy if exists "staff reads own approved payslips" on public.payroll_items;
 create policy "staff reads own approved payslips" on public.payroll_items
-  for select to authenticated using (
-    staff_id = auth.uid()
-    and exists (
-      select 1 from public.payroll_runs r
-      where r.id = payroll_run_id and r.status in ('approved','partially_paid','paid')
-    )
-  );
+  for select to authenticated using (public.staff_can_read_payroll_item(payroll_run_id, staff_id));
 
 grant select on public.staff_salary_settings, public.payroll_runs, public.payroll_items to authenticated;
 
@@ -164,13 +169,13 @@ begin
          s.base_salary + s.allowances - s.default_deductions
   from public.staff_salary_settings s
   join public.profiles p on p.id=s.staff_id
-  where s.is_active = true and s.effective_from <= p_period_end
+  where s.is_active = true and s.effective_from <= p_period_start
     and p.is_active = true and p.role in ('staff','manager');
 
   get diagnostics employee_count = row_count;
   if employee_count = 0 then
     delete from public.payroll_runs where id=run_id;
-    raise exception 'No active staff have salary settings effective for this month';
+    raise exception 'No active staff have salary settings effective from the first day of this month';
   end if;
 
   update public.payroll_runs r set
