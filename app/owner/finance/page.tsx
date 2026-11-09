@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { FinanceControls } from "@/components/finance-controls";
+import { RefundControls } from "@/components/refund-controls";
 
 export const dynamic = "force-dynamic";
 
 type Payment = { amount: number | string | null; payment_method: string | null; created_at: string };
+type RefundPayment = { id: string; amount: number | string; payment_method: string | null; created_at: string; booking_id: string | null };
+type RefundRequest = { id: string; payment_id: string; amount: number | string; reason: string; status: "pending" | "approved" | "rejected" | "processed"; requested_by: string; created_at: string; rejection_reason: string | null; refund_reference: string | null };
 type Expense = {
   id: string; title: string; description: string | null; amount: number | string;
   category: string; approval_status: string; created_at: string;
@@ -41,12 +44,14 @@ export default async function Finance() {
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const [paymentsResult, expensesResult, sessionsResult, departmentsResult, profilesResult] = await Promise.all([
+  const [paymentsResult, expensesResult, sessionsResult, departmentsResult, profilesResult, refundPaymentsResult, refundRequestsResult] = await Promise.all([
     db.from("payments").select("amount,payment_method,created_at").eq("status", "completed").gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }).limit(1000),
     db.from("expenses").select("id,title,description,amount,category,approval_status,created_at,department_id,created_by,rejection_reason,reviewed_at,payment_status,paid_at").order("created_at", { ascending: false }).limit(100),
     db.from("cashier_sessions").select("id,cashier_id,department_id,opening_float,closing_cash,expected_cash,cash_sales,non_cash_sales,cash_expenses,cash_variance,status,opened_at,closed_at").order("opened_at", { ascending: false }).limit(50),
     db.from("departments").select("id,name").order("name"),
     db.from("profiles").select("id,full_name"),
+    db.from("payments").select("id,amount,payment_method,created_at,booking_id").eq("status", "completed").order("created_at", { ascending: false }).limit(100),
+    db.from("refund_requests").select("id,payment_id,amount,reason,status,requested_by,created_at,rejection_reason,refund_reference").order("created_at", { ascending: false }).limit(100),
   ]);
 
   const payments = (paymentsResult.data || []) as Payment[];
@@ -54,6 +59,8 @@ export default async function Finance() {
   const sessions = (sessionsResult.data || []) as Session[];
   const departments = (departmentsResult.data || []) as Department[];
   const profiles = (profilesResult.data || []) as Profile[];
+  const refundPayments = (refundPaymentsResult.data || []) as RefundPayment[];
+  const refundRequests = (refundRequestsResult.data || []) as RefundRequest[];
   const profileNames = new Map(profiles.map((profile) => [profile.id, profile.full_name]));
   const departmentNames = new Map(departments.map((department) => [department.id, department.name]));
 
@@ -76,6 +83,8 @@ export default async function Finance() {
     sessionsResult.error && "cashier sessions",
     departmentsResult.error && "departments",
     profilesResult.error && "staff profiles",
+    refundPaymentsResult.error && "refund payment options",
+    refundRequestsResult.error && "refund requests (apply migration 0012)",
   ].filter(Boolean);
 
   return (
@@ -149,6 +158,8 @@ export default async function Finance() {
       </section>
 
       <FinanceControls pendingExpenses={pendingExpenses} payableExpenses={payableExpenses} departments={departments} openSession={ownOpenSession} />
+
+      <RefundControls ownerMode payments={refundPayments} requests={refundRequests} />
 
       <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
         <h2 className="font-semibold text-forest">Cashier shift register</h2>
