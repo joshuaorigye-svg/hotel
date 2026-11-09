@@ -1,1 +1,75 @@
-@tailwind base; @tailwind components; @tailwind utilities; *{box-sizing:border-box} body{margin:0;background:#F7F5EF;color:#1F2933;font-family:Arial,Helvetica,sans-serif} button,input{font:inherit} ::selection{background:#C6A15B;color:#173F32}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #F7F5EF; color: #1F2933; font-family: Arial, Helvetica, sans-serif; }
+button, input, select, textarea { font: inherit; }
+::selection { background: #C6A15B; color: #173F32; }
+
+:root {
+  --workspace-bg: #F7F5EF;
+  --workspace-surface: #FFFFFF;
+  --workspace-surface-muted: #F7F5EF;
+  --workspace-text: #24342D;
+  --workspace-muted: #718078;
+  --workspace-border: #E7E5DC;
+  --workspace-input: #FFFFFF;
+  --workspace-shadow: 0 10px 30px rgba(24, 48, 38, .045);
+}
+.dark {
+  color-scheme: dark;
+  --workspace-bg: #111A17;
+  --workspace-surface: #1A2722;
+  --workspace-surface-muted: #202F29;
+  --workspace-text: #E8F0EB;
+  --workspace-muted: #A2B2A8;
+  --workspace-border: #34473D;
+  --workspace-input: #17231E;
+  --workspace-shadow: 0 12px 32px rgba(0, 0, 0, .18);
+}
+.workspace-theme { min-height: 100vh; background: var(--workspace-bg); color: var(--workspace-text); transition: background-color .2s ease, color .2s ease; }
+.workspace-theme .bg-white { background-color: var(--workspace-surface) !important; }
+.workspace-theme .bg-cream,
+.workspace-theme [class~="bg-[#F7F5EF]"],
+.workspace-theme [class~="bg-[#F4F1E8]"] { background-color: var(--workspace-surface-muted) !important; }
+.workspace-theme .text-forest { color: var(--workspace-text) !important; }
+.workspace-theme .text-gray-900,
+.workspace-theme .text-gray-800,
+.workspace-theme .text-gray-700,
+.workspace-theme .text-gray-600 { color: var(--workspace-text) !important; }
+.workspace-theme .text-gray-500,
+.workspace-theme .text-gray-400 { color: var(--workspace-muted) !important; }
+.workspace-theme .border-gray-100,
+.workspace-theme .border-gray-200,
+.workspace-theme .border-gray-300,
+.workspace-theme [class~="border-[#EAE6DC]"],
+.workspace-theme [class~="border-[#E9E5DA]"] { border-color: var(--workspace-border) !important; }
+.workspace-theme input:not([type="checkbox"]):not([type="radio"]),
+.workspace-theme select,
+.workspace-theme textarea {
+  background-color: var(--workspace-input);
+  color: var(--workspace-text);
+  border-color: var(--workspace-border);
+}
+.workspace-theme input::placeholder,
+.workspace-theme textarea::placeholder { color: var(--workspace-muted); opacity: .8; }
+.workspace-theme table th { color: var(--workspace-muted); }
+.workspace-theme table td { border-color: var(--workspace-border); }
+.workspace-theme .shadow-soft { box-shadow: var(--workspace-shadow); }
+.dark .workspace-theme .bg-amber-50,
+.dark .workspace-theme .bg-emerald-50,
+.dark .workspace-theme .bg-red-50,
+.dark .workspace-theme .bg-rose-50 { background-color: var(--workspace-surface-muted) !important; }
+.dark .workspace-theme .border-amber-200,
+.dark .workspace-theme .border-emerald-200,
+.dark .workspace-theme .border-red-200,
+.dark .workspace-theme .border-rose-200 { border-color: var(--workspace-border) !important; }
+.dark .workspace-theme .text-amber-800,
+.dark .workspace-theme .text-emerald-800,
+.dark .workspace-theme .text-red-700,
+.dark .workspace-theme .text-rose-700 { color: var(--workspace-text) !important; }
+.dark .workspace-theme header { border-color: var(--workspace-border); }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-theme { transition: none; }
+}
