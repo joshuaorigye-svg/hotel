@@ -7,6 +7,7 @@ type Payment = { amount: number | string | null; payment_method: string | null; 
 type Expense = { id: string; title: string; amount: number | string | null; payment_status: string; paid_at: string | null; created_at: string };
 type Refund = { id: string; amount: number | string | null; processed_at: string | null; refund_reference: string | null };
 type PayrollPayment = { id: string; net_pay: number | string | null; paid_at: string | null; payment_reference: string | null };
+type AdvanceDisbursement = { id: string; amount: number | string | null; disbursed_at: string | null };
 type Session = { id: string; cashier_id: string; opening_float: number | string; cash_sales: number | string | null; non_cash_sales: number | string | null; cash_expenses: number | string | null; expected_cash: number | string | null; closing_cash: number | string | null; cash_variance: number | string | null; status: string; opened_at: string; closed_at: string | null };
 
 const money = (value: number) => new Intl.NumberFormat("en-UG", {
@@ -43,7 +44,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const selectedDate = validCalendarDate && requestedDate <= today ? requestedDate : today;
   const { start, end } = dayBounds(selectedDate);
 
-  const [paymentsResult, expensesResult, refundsResult, sessionsResult, liabilitiesResult, payrollResult] = await Promise.all([
+  const [paymentsResult, expensesResult, refundsResult, sessionsResult, liabilitiesResult, payrollResult, advancesResult] = await Promise.all([
     db.from("payments").select("amount,payment_method,status,created_at")
       .in("status", ["completed", "refunded"]).gte("created_at", start).lt("created_at", end),
     db.from("expenses").select("id,title,amount,payment_status,paid_at,created_at")
@@ -54,6 +55,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
       .gte("opened_at", start).lt("opened_at", end).order("opened_at", { ascending: false }),
     db.from("expenses").select("id,amount").eq("approval_status", "approved").eq("payment_status", "unpaid"),
     db.from("payroll_items").select("id,net_pay,paid_at,payment_reference").eq("payment_status", "paid").gte("paid_at", start).lt("paid_at", end),
+    db.from("staff_advance_requests").select("id,amount,disbursed_at").eq("status", "disbursed").gte("disbursed_at", start).lt("disbursed_at", end),
   ]);
 
   const payments = (paymentsResult.data || []) as Payment[];
@@ -62,6 +64,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const sessions = (sessionsResult.data || []) as Session[];
   const liabilities = liabilitiesResult.data || [];
   const payrollPayments = (payrollResult.data || []) as PayrollPayment[];
+  const advanceDisbursements = (advancesResult.data || []) as AdvanceDisbursement[];
 
   const grossCollections = payments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const cashCollections = payments.filter((row) => row.payment_method === "cash")
@@ -72,7 +75,8 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidExpenses = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidPayroll = payrollPayments.reduce((sum, row) => sum + Number(row.net_pay || 0), 0);
-  const totalPaidOutflows = paidExpenses + paidPayroll;
+  const totalPaidAdvances = advanceDisbursements.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const totalPaidOutflows = paidExpenses + paidPayroll + totalPaidAdvances;
   const processedRefunds = refunds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const netMovement = grossCollections - totalPaidOutflows - processedRefunds;
   const outstandingApproved = liabilities.reduce((sum, row) => sum + Number(row.amount || 0), 0);
@@ -86,6 +90,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     sessionsResult.error && "cashier sessions (apply migration 0011)",
     liabilitiesResult.error && "approved expense commitments",
     payrollResult.error && "payroll payments (apply migration 0013)",
+    advancesResult.error && "advance disbursements (apply migration 0014)",
   ].filter(Boolean);
 
   const exportRows = [
@@ -138,8 +143,8 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
         {[
           ["Gross collections", grossCollections, "Completed and fully refunded payment records"],
           ["Processed refunds", processedRefunds, "Refunds actually settled and recorded"],
-          ["Paid expenses incl. payroll", totalPaidOutflows, "Operating expenses and salary payments actually recorded"],
-          ["Net recorded movement", netMovement, "Collections less processed refunds and paid expenses"],
+          ["Paid outflows incl. payroll & advances", totalPaidOutflows, "Operating expenses, salary payments and staff advances actually disbursed"],
+          ["Net recorded movement", netMovement, "Collections less refunds, operating expenses, payroll and advances"],
         ].map(([label, value, detail]) => (
           <article key={String(label)} className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <p className="text-sm text-gray-500">{label}</p>
@@ -158,7 +163,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
             <div className="flex justify-between py-3"><span>Unclassified payment method</span><b>{money(unclassifiedCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Processed refunds</span><b className="text-rose-700">−{money(processedRefunds)}</b></div>
             <div className="flex justify-between py-3"><span>Paid operating expenses</span><b className="text-rose-700">−{money(paidExpenses)}</b></div>
-            <div className="flex justify-between py-3"><span>Paid payroll</span><b className="text-rose-700">−{money(paidPayroll)}</b></div>
+            <div className="flex justify-between py-3"><span>Paid payroll</span><b className="text-rose-700">−{money(paidPayroll)}</b></div>\n            <div className="flex justify-between py-3"><span>Staff advance disbursements</span><b className="text-rose-700">−{money(totalPaidAdvances)}</b></div>
             <div className="flex justify-between py-3 font-semibold"><span>Net recorded movement</span><b>{money(netMovement)}</b></div>
           </div>
         </article>
