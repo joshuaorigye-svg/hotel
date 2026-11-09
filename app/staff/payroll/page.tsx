@@ -13,7 +13,7 @@ export default async function MyPayslipsPage() {
 
   const { data, error } = await db
     .from("payroll_items")
-    .select("id,base_salary,allowances,deductions,net_pay,payment_status,payment_method,payment_reference,paid_at,payroll_runs(period_start,period_end,status)")
+    .select("id,base_salary,allowances,deductions,advance_deductions,other_deductions,net_pay,payment_status,payment_method,payment_reference,paid_at,payroll_runs(period_start,period_end,status)")
     .eq("staff_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -50,7 +50,7 @@ export default async function MyPayslipsPage() {
                 <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                   <div><dt className="text-xs text-gray-500">Base salary</dt><dd className="mt-1 font-medium">{money(item.base_salary)}</dd></div>
                   <div><dt className="text-xs text-gray-500">Allowances</dt><dd className="mt-1 font-medium">{money(item.allowances)}</dd></div>
-                  <div><dt className="text-xs text-gray-500">Deductions</dt><dd className="mt-1 font-medium">{money(item.deductions)}</dd></div>
+                  <div><dt className="text-xs text-gray-500">Deductions</dt><dd className="mt-1 font-medium">{money(item.deductions)}</dd><dd className="mt-1 text-[10px] text-gray-400">Advance {money(item.advance_deductions || 0)} · Other {money(item.other_deductions || 0)}</dd></div>
                   <div><dt className="text-xs text-gray-500">Net pay</dt><dd className="mt-1 font-semibold text-forest">{money(item.net_pay)}</dd></div>
                 </dl>
                 {item.payment_status === "paid" && <p className="mt-4 border-t pt-3 text-xs text-gray-500">Payment method: {item.payment_method || "Not recorded"} · Reference: {item.payment_reference || "Not recorded"}{item.paid_at ? " · Paid " + new Date(item.paid_at).toLocaleDateString("en-UG", { timeZone: "Africa/Kampala" }) : ""}</p>}
