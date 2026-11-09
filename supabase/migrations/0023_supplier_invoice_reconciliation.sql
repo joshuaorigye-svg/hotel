@@ -270,6 +270,31 @@ $$;
 revoke all on function public.review_supplier_invoice(uuid,text,text) from public;
 grant execute on function public.review_supplier_invoice(uuid,text,text) to authenticated;
 
+-- Keep the invoice register in sync even when the owner settles its linked
+-- payable from the existing Financial Control Centre expense list.
+create or replace function public.sync_supplier_invoice_payment()
+returns trigger
+language plpgsql security definer set search_path=public as $
+begin
+  if new.payment_status='paid' and old.payment_status is distinct from 'paid' then
+    update public.inventory_supplier_invoices
+    set status='paid',
+      payment_method=new.payment_method,
+      payment_reference=nullif(trim(coalesce(new.receipt_reference,'')),''),
+      paid_by=new.paid_by,
+      paid_at=new.paid_at,
+      updated_at=now()
+    where expense_id=new.id and status='approved';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists sync_supplier_invoice_payment on public.expenses;
+create trigger sync_supplier_invoice_payment
+after update of payment_status on public.expenses
+for each row execute function public.sync_supplier_invoice_payment();
+
 create or replace function public.pay_supplier_invoice(
   p_invoice_id uuid,
   p_payment_method text,
