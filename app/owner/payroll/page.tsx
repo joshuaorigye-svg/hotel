@@ -9,7 +9,7 @@ export default async function PayrollPage() {
   const [staffResult, salaryResult, runsResult, itemsResult, profilesResult, advancesResult, deductionsResult, repaymentsResult] = await Promise.all([
     db.from("profiles").select("id,full_name,role").eq("is_active", true).in("role", ["staff", "manager"]).order("full_name"),
     db.from("staff_salary_settings").select("staff_id,base_salary,allowances,default_deductions,effective_from,is_active"),
-    db.from("payroll_runs").select("id,period_start,period_end,status,total_gross,total_deductions,total_net").order("period_start", { ascending: false }),
+    db.from("payroll_runs").select("id,period_start,period_end,status,total_gross,total_deductions,total_net,cancellation_reason").order("period_start", { ascending: false }),
     db.from("payroll_items").select("id,payroll_run_id,staff_id,base_salary,allowances,deductions,advance_deductions,other_deductions,net_pay,payment_status,payment_method,payment_reference"),
     db.from("profiles").select("id,full_name"),
     db.from("staff_advance_requests").select("id,staff_id,amount,repayment_per_month,reason,status,rejection_reason,disbursement_reference").order("created_at", { ascending: false }),
