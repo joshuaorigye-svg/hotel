@@ -285,7 +285,7 @@ begin
  select v_stocktake_id,id,quantity from public.inventory_items where department_id=dept and is_active;
  if not exists(select 1 from public.inventory_stocktake_lines where inventory_stocktake_lines.stocktake_id=v_stocktake_id) then raise exception 'There are no active inventory items to count'; end if;
  insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
- values(auth.uid(),'Created inventory stocktake','inventory_stocktake',stocktake_id,jsonb_build_object('department_id',dept));
+ values(auth.uid(),'Created inventory stocktake','inventory_stocktake',v_stocktake_id,jsonb_build_object('department_id',dept));
  return v_stocktake_id;
 end; $$;
 
@@ -354,7 +354,7 @@ begin
  values(it.id,it.department_id,'issue',-p_quantity,trim(p_purpose),auth.uid());
  insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
  values(auth.uid(),'Issued inventory stock','inventory_item',it.id,jsonb_build_object('quantity',p_quantity,'purpose',trim(p_purpose)));
-end; $;
+end; $$;
 
 revoke all on function public.issue_inventory_stock(uuid,numeric,text) from public;
 grant execute on function public.issue_inventory_stock(uuid,numeric,text) to authenticated;
