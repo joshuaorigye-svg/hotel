@@ -13,7 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type Payment = { amount: number | string | null; created_at: string };
-type Expense = { amount: number | string | null; department_id: string | null; departments?: { name: string } | { name: string }[] | null };
+type Expense = { amount: number | string | null; created_at: string; department_id: string | null; departments?: { name: string } | { name: string }[] | null };
 type Booking = { check_in: string; check_out: string };
 type Attendance = { staff_id: string; status: string };
 type Task = { status: string };
@@ -89,7 +89,7 @@ export default async function Reports() {
   const [payments, expenses, bookings, rooms, attendance, staff, tasks, orders, inventory] =
     await Promise.all([
       db.from("payments").select("amount,created_at").eq("status", "completed").gte("created_at", from).order("created_at"),
-      db.from("expenses").select("amount,department_id,departments(name)").eq("approval_status", "approved").gte("created_at", from),
+      db.from("expenses").select("amount,created_at,department_id,departments(name)").eq("approval_status", "approved").gte("created_at", from),
       db.from("bookings").select("check_in,check_out").in("status", ["confirmed", "checked_in", "checked_out"]).gte("check_out", fromDate).lte("check_in", todayKey),
       db.from("rooms").select("id").eq("is_active", true),
       db.from("attendance").select("staff_id,status").gte("clock_in", from),
@@ -115,7 +115,7 @@ export default async function Reports() {
   const monthly = monthKeys.map((key) => ({
     month: key,
     revenue: paymentRows.filter((row) => monthKey(row.created_at) === key).reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    expenses: expenseRows.filter((row) => monthKey((row as Expense & { created_at: string }).created_at || "") === key).reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    expenses: expenseRows.filter((row) => monthKey(row.created_at) === key).reduce((sum, row) => sum + Number(row.amount || 0), 0),
   }));
 
   // Occupancy is a booking-date estimate using today's active room count. Future nights are excluded.
