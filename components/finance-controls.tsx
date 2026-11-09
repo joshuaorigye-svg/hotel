@@ -13,6 +13,7 @@ type Expense = {
   created_at: string;
   department_id: string | null;
   created_by: string | null;
+  payment_status?: string;
 };
 type Department = { id: string; name: string };
 type Session = {
@@ -26,11 +27,13 @@ const money = (value: number | string) =>
 
 export function FinanceControls({
   pendingExpenses,
+  payableExpenses,
   departments,
   openSession,
   cashierOnly = false,
 }: {
   pendingExpenses: Expense[];
+  payableExpenses: Expense[];
   departments: Department[];
   openSession: Session | null;
   cashierOnly?: boolean;
@@ -50,6 +53,7 @@ export function FinanceControls({
   const [countedCash, setCountedCash] = useState("");
   const [closingNotes, setClosingNotes] = useState("");
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
+  const [expensePaymentMethods, setExpensePaymentMethods] = useState<Record<string, string>>({});
   const [reconciliation, setReconciliation] = useState<{
     opening_float: number;
     cash_sales: number;
@@ -115,6 +119,23 @@ export function FinanceControls({
     if (error) reportError(error.message);
     else {
       setMessage(decision === "approved" ? "Expense approved." : "Expense rejected with a recorded reason.");
+      router.refresh();
+    }
+    setBusy("");
+  }
+
+  async function markExpensePaid(id: string) {
+    setBusy("pay-expense-" + id);
+    setMessage("");
+    setIsError(false);
+    const { error } = await db.rpc("mark_expense_paid", {
+      p_expense_id: id,
+      p_payment_method: expensePaymentMethods[id] || "cash",
+      p_receipt_reference: null,
+    });
+    if (error) reportError(error.message);
+    else {
+      setMessage("Expense marked as paid. Cash payments will be included in the next cashier reconciliation.");
       router.refresh();
     }
     setBusy("");
@@ -259,6 +280,28 @@ export function FinanceControls({
       {!cashierOnly && <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
         <div className="flex items-center justify-between gap-3">
           <div>
+            <h2 className="font-semibold text-forest">Approved expenses awaiting payment</h2>
+            <p className="mt-1 text-xs text-gray-500">Approval does not mean money has been paid. Record the actual payment method when the expense is settled.</p>
+            {!payableExpenses.length ? <p className="py-6 text-center text-sm text-gray-400">No approved expenses are awaiting payment.</p> : (
+              <div className="mt-3 space-y-3">
+                {payableExpenses.map((expense) => (
+                  <div key={expense.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
+                    <div><p className="font-medium text-forest">{expense.title}</p><p className="text-xs text-gray-500">{money(expense.amount)} · {expense.category.replaceAll("_", " ")}</p></div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select value={expensePaymentMethods[expense.id] || "cash"} onChange={(event) => setExpensePaymentMethods((current) => ({ ...current, [expense.id]: event.target.value }))} className="rounded-lg border border-gray-200 p-2 text-sm">
+                        <option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="pesapal">Pesapal</option>
+                      </select>
+                      <button type="button" disabled={!!busy} onClick={() => markExpensePaid(expense.id)} className="rounded-lg bg-forest px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy === "pay-expense-" + expense.id ? "Saving…" : "Mark paid"}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+        <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            <div>
             <h2 className="font-semibold text-forest">Expense approvals</h2>
             <p className="mt-1 text-xs text-gray-500">Only the owner can approve or reject a pending request.</p>
           </div>
