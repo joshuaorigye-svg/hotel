@@ -30,10 +30,11 @@ function dayBounds(date: string) {
   };
 }
 
-export default async function DailyFinance({ searchParams }: { searchParams?: { date?: string } }) {
+export default async function DailyFinance({ searchParams }: { searchParams?: { date?: string | string[] } }) {
   const db = await createClient();
   const today = kampalaDate(new Date());
-  const requestedDate = searchParams?.date || today;
+  const dateParam = searchParams?.date;
+  const requestedDate = (Array.isArray(dateParam) ? dateParam[0] : dateParam) || today;
   const parsedDate = new Date(requestedDate + "T00:00:00Z");
   const validCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
     && !Number.isNaN(parsedDate.getTime())
