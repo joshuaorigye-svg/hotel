@@ -268,22 +268,21 @@ begin
    '/manager/inventory','inventory_transfer',t.id);
 end; $$;
 
-create or replace function public.create_inventory_stocktake(p_notes text default null)
-returns uuid language plpgsql security definer set search_path=public as $$
-declare dept uuid; stocktake_id uuid;
+create or replace function public.create_inventory_stocktake(p_department_id uuid default null,p_notes text default null)
+returns uuid language plpgsql security definer set search_path=public as $
+declare dept uuid; v_stocktake_id uuid;
 begin
  if public.current_user_role() not in('owner','manager') then raise exception 'Manager or owner access required'; end if;
- dept:=case when public.is_owner() then null else public.current_user_department() end;
- if public.is_owner() then raise exception 'Owner must choose a department when creating a stocktake using the department page'; end if;
- if dept is null then raise exception 'Department is required'; end if;
+ dept:=case when public.is_owner() then p_department_id else public.current_user_department() end;
+ if dept is null or not exists(select 1 from public.departments where id=dept and not owner_only) then raise exception 'Choose a valid operational department'; end if;
  insert into public.inventory_stocktakes(department_id,notes,created_by)
- values(dept,nullif(trim(coalesce(p_notes,'')),''),auth.uid()) returning id into stocktake_id;
+ values(dept,nullif(trim(coalesce(p_notes,'')),''),auth.uid()) returning id into v_stocktake_id;
  insert into public.inventory_stocktake_lines(stocktake_id,inventory_item_id,system_quantity)
- select stocktake_id,id,quantity from public.inventory_items where department_id=dept and is_active;
- if not exists(select 1 from public.inventory_stocktake_lines where stocktake_id=stocktake_id) then raise exception 'There are no active inventory items to count'; end if;
+ select v_stocktake_id,id,quantity from public.inventory_items where department_id=dept and is_active;
+ if not exists(select 1 from public.inventory_stocktake_lines where inventory_stocktake_lines.stocktake_id=v_stocktake_id) then raise exception 'There are no active inventory items to count'; end if;
  insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
  values(auth.uid(),'Created inventory stocktake','inventory_stocktake',stocktake_id,jsonb_build_object('department_id',dept));
- return stocktake_id;
+ return v_stocktake_id;
 end; $$;
 
 create or replace function public.record_inventory_stocktake_count(p_line_id uuid,p_counted_quantity numeric)
@@ -339,7 +338,7 @@ revoke all on function public.review_inventory_purchase_order(uuid,text,text) fr
 revoke all on function public.receive_inventory_purchase_order(uuid,jsonb,text) from public;
 revoke all on function public.request_inventory_transfer(uuid,uuid,numeric,text) from public;
 revoke all on function public.review_inventory_transfer(uuid,text,text) from public;
-revoke all on function public.create_inventory_stocktake(text) from public;
+revoke all on function public.create_inventory_stocktake(uuid,text) from public;
 revoke all on function public.record_inventory_stocktake_count(uuid,numeric) from public;
 revoke all on function public.submit_inventory_stocktake(uuid) from public;
 revoke all on function public.approve_inventory_stocktake(uuid,text) from public;
@@ -348,7 +347,7 @@ grant execute on function public.review_inventory_purchase_order(uuid,text,text)
 grant execute on function public.receive_inventory_purchase_order(uuid,jsonb,text) to authenticated;
 grant execute on function public.request_inventory_transfer(uuid,uuid,numeric,text) to authenticated;
 grant execute on function public.review_inventory_transfer(uuid,text,text) to authenticated;
-grant execute on function public.create_inventory_stocktake(text) to authenticated;
+grant execute on function public.create_inventory_stocktake(uuid,text) to authenticated;
 grant execute on function public.record_inventory_stocktake_count(uuid,numeric) to authenticated;
 grant execute on function public.submit_inventory_stocktake(uuid) to authenticated;
 grant execute on function public.approve_inventory_stocktake(uuid,text) to authenticated;
