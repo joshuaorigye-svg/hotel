@@ -193,7 +193,7 @@ language plpgsql security definer set search_path = public as $$
 declare target public.staff_advance_requests%rowtype;
 begin
   if not public.is_owner() then raise exception 'Owner approval required'; end if;
-  if p_decision not in ('approve','reject') then raise exception 'Choose approve or reject'; end if;
+  if p_decision is null or p_decision not in ('approve','reject') then raise exception 'Choose approve or reject'; end if;
   if p_decision='reject' and length(trim(coalesce(p_rejection_reason,''))) < 5 then
     raise exception 'A clear rejection reason is required';
   end if;
@@ -219,7 +219,7 @@ language plpgsql security definer set search_path = public as $$
 declare target public.staff_advance_requests%rowtype;
 begin
   if not public.is_owner() then raise exception 'Owner disbursement access required'; end if;
-  if p_payment_method not in ('cash','mobile_money','bank_transfer')
+  if p_payment_method is null or p_payment_method not in ('cash','mobile_money','bank_transfer')
      or length(trim(coalesce(p_payment_reference,''))) < 3 then
     raise exception 'Choose a payment method and enter the actual disbursement reference';
   end if;
