@@ -247,7 +247,7 @@ export default async function Reports() {
             <div className="flex justify-between py-3"><span>Tasks created in period</span><b>{taskRows.length}</b></div>
             <div className="flex justify-between py-3"><span>Non-cancelled restaurant/bar orders</span><b>{orderRows.length}</b></div>
           </div>
-          <p className="mt-3 text-xs text-gray-400">Occupancy uses today's active room count and past booking nights. It is an estimate, not a historical room-inventory snapshot.</p>
+          <p className="mt-3 text-xs text-gray-400">Occupancy uses today&apos;s active room count and past booking nights. It is an estimate, not a historical room-inventory snapshot.</p>
         </section>
       </div>
       <p className="text-xs text-gray-400">
