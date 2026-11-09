@@ -31,12 +31,14 @@ export function FinanceControls({
   departments,
   openSession,
   cashierOnly = false,
+  managerMode = false,
 }: {
   pendingExpenses: Expense[];
   payableExpenses: Expense[];
   departments: Department[];
   openSession: Session | null;
   cashierOnly?: boolean;
+  managerMode?: boolean;
 }) {
   const db = createClient();
   const router = useRouter();
@@ -279,7 +281,7 @@ export function FinanceControls({
         </section>
       )}
 
-      {!cashierOnly && (
+      {!cashierOnly && !managerMode && (
         <>
           <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
             <h2 className="font-semibold text-forest">Approved expenses awaiting payment</h2>
