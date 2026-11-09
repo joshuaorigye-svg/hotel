@@ -58,7 +58,9 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
   const grossCollections = payments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const cashCollections = payments.filter((row) => row.payment_method === "cash")
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const nonCashCollections = payments.filter((row) => row.payment_method !== "cash")
+  const nonCashCollections = payments.filter((row) => row.payment_method != null && row.payment_method !== "cash")
+    .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const unclassifiedCollections = payments.filter((row) => row.payment_method == null)
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const paidExpenses = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const processedRefunds = refunds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
@@ -84,6 +86,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
     ["Gross completed/refunded payment records", String(grossCollections)],
     ["Cash collections", String(cashCollections)],
     ["Non-cash collections", String(nonCashCollections)],
+    ["Unclassified payment method", String(unclassifiedCollections)],
     ["Processed refunds", String(processedRefunds)],
     ["Paid expenses", String(paidExpenses)],
     ["Net recorded movement", String(netMovement)],
@@ -139,6 +142,7 @@ export default async function DailyFinance({ searchParams }: { searchParams?: { 
           <div className="mt-3 divide-y text-sm">
             <div className="flex justify-between py-3"><span>Cash collections</span><b>{money(cashCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Non-cash collections</span><b>{money(nonCashCollections)}</b></div>
+            <div className="flex justify-between py-3"><span>Unclassified payment method</span><b>{money(unclassifiedCollections)}</b></div>
             <div className="flex justify-between py-3"><span>Processed refunds</span><b className="text-rose-700">−{money(processedRefunds)}</b></div>
             <div className="flex justify-between py-3"><span>Paid expenses</span><b className="text-rose-700">−{money(paidExpenses)}</b></div>
             <div className="flex justify-between py-3 font-semibold"><span>Net recorded movement</span><b>{money(netMovement)}</b></div>
