@@ -34,7 +34,7 @@ create table if not exists public.inventory_supplier_invoices (
   constraint inventory_supplier_invoice_number_check
     check(char_length(trim(invoice_number)) between 1 and 100),
   constraint inventory_supplier_invoice_due_date_check
-    check(due_date is null or due_date >= invoice_date),
+    check(due_date is null or due_date >= invoice_date)
 );
 
 create table if not exists public.inventory_supplier_invoice_lines (
