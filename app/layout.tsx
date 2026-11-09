@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { hotel } from "@/config/hotel";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: { default: hotel.name, template: "%s | " + hotel.shortName },
@@ -12,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><ThemeProvider>{children}</ThemeProvider></body></html>;
 }
