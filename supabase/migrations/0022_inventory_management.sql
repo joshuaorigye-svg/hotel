@@ -19,7 +19,7 @@ alter table public.inventory_movements
   drop constraint if exists inventory_movements_movement_type_check;
 alter table public.inventory_movements
   add constraint inventory_movements_movement_type_check
-  check(movement_type in('opening','purchase','adjustment','waste','sale','reversal','transfer_in','transfer_out','stocktake'));
+  check(movement_type in('opening','purchase','adjustment','waste','sale','reversal','transfer_in','transfer_out','stocktake','issue'));
 
 create table if not exists public.inventory_suppliers(
  id uuid primary key default gen_random_uuid(),
@@ -246,7 +246,8 @@ begin
  select * into t from public.inventory_transfers where id=p_transfer_id for update;
  if not found or t.status<>'requested' then raise exception 'Transfer is no longer awaiting review'; end if;
  select * into src from public.inventory_items where id=t.source_item_id and is_active for update;
- if not found or src.quantity<t.quantity then raise exception 'Source stock is no longer sufficient'; end if;
+ if not found then raise exception 'Source stock item no longer exists'; end if;
+ if p_decision='approved' and src.quantity<t.quantity then raise exception 'Source stock is no longer sufficient'; end if;
  if p_decision='rejected' then
    update public.inventory_transfers set status='rejected',decision_note=nullif(trim(p_note),''),reviewed_by=auth.uid(),reviewed_at=now() where id=t.id;
  else
@@ -335,6 +336,28 @@ begin
  insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
  values(auth.uid(),'Approved inventory stocktake','inventory_stocktake',s.id,jsonb_build_object('department_id',s.department_id,'note',p_note));
 end; $$;
+
+
+create or replace function public.issue_inventory_stock(p_inventory_item_id uuid,p_quantity numeric,p_purpose text)
+returns void language plpgsql security definer set search_path=public as $
+declare it public.inventory_items%rowtype;
+begin
+ if public.current_user_role() not in('owner','manager') then raise exception 'Manager or owner access required'; end if;
+ if p_quantity is null or p_quantity<=0 or p_quantity>1000000 then raise exception 'Enter a valid issue quantity'; end if;
+ if length(trim(coalesce(p_purpose,'')))<3 or length(trim(coalesce(p_purpose,'')))>300 then raise exception 'Add a short purpose for this stock issue'; end if;
+ select * into it from public.inventory_items where id=p_inventory_item_id and is_active for update;
+ if not found then raise exception 'Stock item not found'; end if;
+ if not public.is_owner() and it.department_id<>public.current_user_department() then raise exception 'You can issue stock only from your department'; end if;
+ if it.quantity<p_quantity then raise exception 'Insufficient stock available'; end if;
+ update public.inventory_items set quantity=quantity-p_quantity,updated_at=now() where id=it.id;
+ insert into public.inventory_movements(inventory_item_id,department_id,movement_type,quantity_delta,note,created_by)
+ values(it.id,it.department_id,'issue',-p_quantity,trim(p_purpose),auth.uid());
+ insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata)
+ values(auth.uid(),'Issued inventory stock','inventory_item',it.id,jsonb_build_object('quantity',p_quantity,'purpose',trim(p_purpose)));
+end; $;
+
+revoke all on function public.issue_inventory_stock(uuid,numeric,text) from public;
+grant execute on function public.issue_inventory_stock(uuid,numeric,text) to authenticated;
 
 revoke all on function public.create_inventory_purchase_order(uuid,text,jsonb) from public;
 revoke all on function public.review_inventory_purchase_order(uuid,text,text) from public;
