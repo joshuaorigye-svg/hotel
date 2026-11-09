@@ -189,7 +189,7 @@ export default async function FinancialPerformance({
 
       <section className="rounded-2xl border border-[#EAE6DC] bg-white p-5 shadow-soft">
         <h2 className="font-semibold text-forest">Monthly cash movement</h2>
-        <p className="mt-1 text-xs text-gray-500">Green bars show recorded collections; amber bars combine paid expenses and processed refunds.</p>
+        <p className="mt-1 text-xs text-gray-500">Green bars show recorded collections; amber bars combine paid expenses, payroll, advance disbursements and processed refunds.</p>
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
           {monthly.map((row) => (
             <div key={row.month} className="min-w-0">
@@ -221,6 +221,7 @@ export default async function FinancialPerformance({
                   <td className="py-3 pr-3">{money(row.collections)}</td>
                   <td className="py-3 pr-3">{money(row.expenses)}</td>
                   <td className="py-3 pr-3">{money(row.payroll)}</td>
+                  <td className="py-3 pr-3">{money(row.advances)}</td>
                   <td className="py-3 pr-3">{money(row.refunds)}</td>
                   <td className="py-3 font-semibold">{money(row.net)}</td>
                 </tr>
